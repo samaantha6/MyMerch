@@ -123,7 +123,7 @@ public class VentanaCatalogo extends JFrame {
         pCantidad.add(lblCantidad);
         pCantidad.add(btnMas);
 
-        panel.add(pCantidad, BorderLayout.SOUTH); 
+        panel.add(pCantidad, BorderLayout.SOUTH);
 
         return panel;
     }
