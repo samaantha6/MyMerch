@@ -15,8 +15,6 @@ public class Main {
 	public static void main(String[] args) {
 	    Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db");
 	    File dbFile = new File("resources/db/MyMerch.db");
-	    System.out.println(dbFile.getAbsolutePath());
-
 
 	    try {
 	        BaseDatosConfig.crearTablas(con);
