@@ -10,6 +10,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
 import db.BaseDatosConfig;
+import domain.Usuario;
 
 public class VentanaInicioSesion extends JFrame {
 
@@ -131,8 +132,9 @@ public class VentanaInicioSesion extends JFrame {
                 return;
             }
 
-            if (validarUsuario(correo, contrasena)) {
-                SwingUtilities.invokeLater(() -> new VentanaCatalogo());
+            Usuario usuario = validarUsuario(correo, contrasena);
+            if (usuario != null) {
+                SwingUtilities.invokeLater(() -> new VentanaCatalogo(usuario));
                 dispose();
             } else {
                 JOptionPane.showMessageDialog(this, "Correo o contraseña incorrectos", "Error", JOptionPane.ERROR_MESSAGE);
@@ -178,8 +180,8 @@ public class VentanaInicioSesion extends JFrame {
     }
 
     // Validar usuario en la base de datos
-    private boolean validarUsuario(String correo, String contrasena) {
-        boolean valido = false;
+    private Usuario validarUsuario(String correo, String contrasena) {
+        Usuario u = null;
         Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db");
         if (con != null) {
             try {
@@ -189,7 +191,13 @@ public class VentanaInicioSesion extends JFrame {
                 pst.setString(2, contrasena);
                 ResultSet rs = pst.executeQuery();
                 if (rs.next()) {
-                    valido = true;
+                    u = new Usuario(
+                        rs.getString("nombre"),
+                        rs.getString("apellidos"),
+                        rs.getString("correo"),
+                        rs.getString("telefono"),
+                        rs.getString("contrasena")
+                    );
                 }
                 rs.close();
                 pst.close();
@@ -199,6 +207,7 @@ public class VentanaInicioSesion extends JFrame {
                 BaseDatosConfig.closeBD(con);
             }
         }
-        return valido;
+        return u;
     }
+
 }

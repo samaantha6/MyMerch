@@ -146,7 +146,7 @@ public class VentanaRegistro extends JFrame {
 
             if (BaseDatosConfig.insertarUsuario(u)) {
                 JOptionPane.showMessageDialog(this, "Registro completado correctamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-                new VentanaCatalogo();
+                new VentanaCatalogo(u); // ✅ pasar el usuario al constructor
                 dispose();
             } else {
                 JOptionPane.showMessageDialog(this, "Error al guardar el usuario", "Error", JOptionPane.ERROR_MESSAGE);
