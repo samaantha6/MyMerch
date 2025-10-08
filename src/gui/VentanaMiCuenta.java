@@ -21,7 +21,7 @@ public class VentanaMiCuenta extends JFrame {
 
         setTitle("Mi Cuenta");
         setSize(700, 500);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(10, 10));
 
@@ -55,7 +55,6 @@ public class VentanaMiCuenta extends JFrame {
 
         JLabel lblNombre = new JLabel("Nombre: " + usuario.getNombre());
         JLabel lblCorreo = new JLabel("Correo: " + usuario.getCorreo());
-
         lblNombre.setFont(new Font("Tahoma", Font.PLAIN, 16));
         lblCorreo.setFont(new Font("Tahoma", Font.PLAIN, 16));
 
@@ -69,7 +68,6 @@ public class VentanaMiCuenta extends JFrame {
 
         JLabel lblApellidos = new JLabel("Apellidos: " + usuario.getApellidos());
         JLabel lblTelefono = new JLabel("Teléfono: " + usuario.getTelefono());
-
         lblApellidos.setFont(new Font("Tahoma", Font.PLAIN, 16));
         lblTelefono.setFont(new Font("Tahoma", Font.PLAIN, 16));
 
@@ -79,17 +77,14 @@ public class VentanaMiCuenta extends JFrame {
 
         pCentral.add(pIzq);
         pCentral.add(pDer);
-
         add(pCentral, BorderLayout.CENTER);
 
-        JPanel pInferior = new JPanel();
-        pInferior.setLayout(new BoxLayout(pInferior, BoxLayout.Y_AXIS));
+        JPanel pInferior = new JPanel(new FlowLayout(FlowLayout.CENTER));
         pInferior.setBorder(new EmptyBorder(10, 10, 30, 10));
 
         JLabel linkCambiarContrasena = new JLabel("<HTML><U>Cambiar contraseña</U></HTML>");
         linkCambiarContrasena.setForeground(Color.BLUE.darker());
         linkCambiarContrasena.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        linkCambiarContrasena.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         linkCambiarContrasena.addMouseListener(new MouseAdapter() {
             @Override
@@ -106,16 +101,13 @@ public class VentanaMiCuenta extends JFrame {
         add(pInferior, BorderLayout.SOUTH);
 
         // Eventos
-        btnAtras.addActionListener(e -> {
-            new VentanaCatalogo(usuario);
-            dispose();
-        });
+        btnAtras.addActionListener(e -> dispose()); 
 
         setVisible(true);
         setResizable(false);
     }
 
-    // Método para cambiar la contraseña
+    // Metodos
     private void cambiarContrasena(String nuevaContrasena) {
         Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db");
         if (con != null) {

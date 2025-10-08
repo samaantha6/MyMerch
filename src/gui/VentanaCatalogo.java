@@ -49,8 +49,10 @@ public class VentanaCatalogo extends JFrame {
         });
 
         miPedidos.addActionListener(e -> {
-            // TODO: Implementar funcionalidad de Pedidos
+            new VentanaMisPedidos(usuario);
+            dispose(); 
         });
+
 
         btnUser.addActionListener(e -> menuUser.show(btnUser, 0, btnUser.getHeight()));
 
