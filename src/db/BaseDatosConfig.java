@@ -34,7 +34,6 @@ public class BaseDatosConfig {
         return con;
     }
 
-    // Cierra la conexión
     public static void closeBD(Connection con) {
         if (con != null) {
             try {
@@ -77,13 +76,17 @@ public class BaseDatosConfig {
             ");"
         );
 
-        // Tabla Pedidos
+        // Tabla Pedidos (adaptada para dirección)
         stmt.execute(
             "CREATE TABLE IF NOT EXISTS Pedidos (" +
             "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
             "id_usuario INTEGER NOT NULL, " +
             "fecha TEXT NOT NULL, " +
             "estado TEXT DEFAULT 'pendiente', " +
+            "direccion TEXT DEFAULT '', " +
+            "pais TEXT DEFAULT '', " +
+            "cp TEXT DEFAULT '', " +
+            "provincia TEXT DEFAULT '', " +
             "FOREIGN KEY (id_usuario) REFERENCES Usuarios(id)" +
             ");"
         );
@@ -102,9 +105,8 @@ public class BaseDatosConfig {
 
         logger.info("Tablas inicializadas correctamente.");
         stmt.close();
-
     }
-    
+
     public static boolean insertarUsuario(Usuario u) {
         Connection con = initBD("resources/db/MyMerch.db");
         if (con != null) {
@@ -137,6 +139,5 @@ public class BaseDatosConfig {
         }
         return false;
     }
-
 
 }

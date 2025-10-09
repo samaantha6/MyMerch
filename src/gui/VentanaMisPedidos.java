@@ -123,7 +123,7 @@ public class VentanaMisPedidos extends JFrame {
         setResizable(false);
     }
 
-    private void cargarPedidosDesdeBD() {
+    protected void cargarPedidosDesdeBD() {
         modeloTabla.setRowCount(0);
         comboPedidos.removeAllItems();
 
@@ -269,22 +269,22 @@ public class VentanaMisPedidos extends JFrame {
             JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
             String estado = (String) table.getValueAt(row, 4);
             if ("pendiente".equalsIgnoreCase(estado)) {
-            	ImageIcon iconX = new ImageIcon("resources/images/x.png");
-            	Image imgX = iconX.getImage().getScaledInstance(20, 18, Image.SCALE_SMOOTH);
-            	JButton btnCancelar = new JButton(new ImageIcon(imgX));
-            	btnCancelar.setPreferredSize(new Dimension(25, 25));
+                JButton btnCancelar = new JButton(new ImageIcon("resources/images/x.png"));
+                btnCancelar.setPreferredSize(new Dimension(25, 25));
 
-            	ImageIcon iconLapiz = new ImageIcon("resources/images/lapiz.png");
-            	Image imgLapiz = iconLapiz.getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
-            	JButton btnEditar = new JButton(new ImageIcon(imgLapiz));
-				btnEditar.setPreferredSize(new Dimension(25, 25));
+                JButton btnEditar = new JButton(new ImageIcon("resources/images/lapiz.png"));
+                btnEditar.setPreferredSize(new Dimension(25, 25));
 
-				panel.add(btnCancelar);
-				panel.add(btnEditar);
+                panel.add(btnCancelar);
+                panel.add(btnEditar);
             }
             return panel;
-        }
+        
     }
+
+            
+        }
+        
 
     class AccionEditor extends DefaultCellEditor {
         private JPanel panel;
@@ -301,6 +301,7 @@ public class VentanaMisPedidos extends JFrame {
             panel.removeAll();
             String estado = (String) table.getValueAt(row, 4);
             if ("pendiente".equalsIgnoreCase(estado)) {
+
                 JButton btnCancelar = new JButton(new ImageIcon("resources/images/x.png"));
                 btnCancelar.setPreferredSize(new Dimension(25, 25));
                 btnCancelar.addActionListener(e -> {
@@ -311,10 +312,8 @@ public class VentanaMisPedidos extends JFrame {
                 JButton btnEditar = new JButton(new ImageIcon("resources/images/lapiz.png"));
                 btnEditar.setPreferredSize(new Dimension(25, 25));
                 btnEditar.addActionListener(e -> {
-                    String nuevoDetalle = JOptionPane.showInputDialog("Modificar detalles:");
-                    if (nuevoDetalle != null && !nuevoDetalle.trim().isEmpty()) {
-                        table.setValueAt(nuevoDetalle, row, 1);
-                    }
+                    int idPedido = (Integer) table.getValueAt(row, 0);
+                    new VentanaModificarPedido(usuario, idPedido, VentanaMisPedidos.this);
                     fireEditingStopped();
                 });
 
@@ -325,4 +324,6 @@ public class VentanaMisPedidos extends JFrame {
             return panel;
         }
     }
+
+
 }
