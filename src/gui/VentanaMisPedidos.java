@@ -31,6 +31,8 @@ public class VentanaMisPedidos extends JFrame {
     private JComboBox<Integer> comboPedidos;
 
     public VentanaMisPedidos(Usuario usuario) {
+    	System.out.println("ID de usuario: " + usuario.getId());
+
         this.usuario = usuario;
 
         setTitle("Mis Pedidos");
@@ -42,13 +44,11 @@ public class VentanaMisPedidos extends JFrame {
         JPanel pSuperior = new JPanel(new BorderLayout());
         pSuperior.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        // Logo en el centro
         ImageIcon iconLogo = new ImageIcon("resources/images/logo.png");
         Image imgLogo = iconLogo.getImage().getScaledInstance(80, 80, Image.SCALE_SMOOTH);
         JLabel lblLogo = new JLabel(new ImageIcon(imgLogo), SwingConstants.CENTER);
         pSuperior.add(lblLogo, BorderLayout.CENTER);
 
-        // Parte izquierda: imagen user + "Pedidos"
         JPanel pIzq = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         ImageIcon iconUser = new ImageIcon("resources/images/user.png");
         Image imgUser = iconUser.getImage().getScaledInstance(50, 50, Image.SCALE_SMOOTH);
@@ -59,17 +59,21 @@ public class VentanaMisPedidos extends JFrame {
         pIzq.add(lblPedidos);
         pSuperior.add(pIzq, BorderLayout.WEST);
 
-        // Parte derecha: icono casa que vuelve a catálogo
-        JButton btnHome = new JButton(new ImageIcon("resources/images/home.png"));
+        
+        ImageIcon iconCasa = new ImageIcon("resources/images/casa.png");
+    	Image imgCasa = iconCasa.getImage().getScaledInstance(35, 35, Image.SCALE_SMOOTH);
+    	JButton btnHome = new JButton(new ImageIcon(imgCasa));
+		
         btnHome.setContentAreaFilled(false);
         btnHome.setBorderPainted(false);
         btnHome.setFocusPainted(false);
+        
         btnHome.addActionListener(e -> {
             new VentanaCatalogo(usuario);
             dispose();
         });
+        
         pSuperior.add(btnHome, BorderLayout.EAST);
-
         add(pSuperior, BorderLayout.NORTH);
 
         // Tabla
@@ -124,43 +128,55 @@ public class VentanaMisPedidos extends JFrame {
         comboPedidos.removeAllItems();
 
         try (Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db")) {
-            String sql = "SELECT p.id, p.fecha, p.estado, dp.id_producto, dp.cantidad, prod.nombre, prod.descripcion, prod.precio " +
-                         "FROM Pedidos p " +
-                         "JOIN DetallePedido dp ON p.id = dp.id_pedido " +
-                         "JOIN Productos prod ON dp.id_producto = prod.id " +
-                         "WHERE p.id_usuario = ?";
+        	String sqlPedidos = "SELECT * FROM Pedidos WHERE id_usuario = ? ORDER BY id";
+        	PreparedStatement pstPedidos = con.prepareStatement(sqlPedidos);
+        	pstPedidos.setInt(1, usuario.getId());
+        	ResultSet rsPedidos = pstPedidos.executeQuery();
 
-            PreparedStatement pst = con.prepareStatement(sql);
-            pst.setInt(1, usuario.getId());
-            ResultSet rs = pst.executeQuery();
+        	while (rsPedidos.next()) {
+        	    int idPedido = rsPedidos.getInt("id");
+        	    String fecha = rsPedidos.getString("fecha");
+        	    String estado = rsPedidos.getString("estado");
+        	    String direccion = "No definida";
 
-            while (rs.next()) {
-                int idPedido = rs.getInt("id");
-                String detalles = rs.getInt("cantidad") + " x " + rs.getString("nombre") + " (" + rs.getString("descripcion") + ") - " + rs.getDouble("precio") + "€";
-                String fecha = rs.getString("fecha");
-                String estado = rs.getString("estado");
-                String direccion = "No definida"; 
-                
-                Object[] fila = {idPedido, detalles, fecha, direccion, estado, ""};
-                modeloTabla.addRow(fila);
-                boolean existe = false;
-                for (int i = 0; i < comboPedidos.getItemCount(); i++) {
-                    if (comboPedidos.getItemAt(i).equals(idPedido)) {
-                        existe = true;
-                        break;
-                    }
-                }
-                if (!existe) {
-                    comboPedidos.addItem(idPedido);
-                }
-            }
-            rs.close();
-            pst.close();
+        	    // Ahora obtenemos los detalles de cada pedido
+        	    String sqlDetalles = "SELECT dp.cantidad, prod.nombre, prod.descripcion, prod.precio " +
+        	                         "FROM DetallePedido dp " +
+        	                         "JOIN Productos prod ON dp.id_producto = prod.id " +
+        	                         "WHERE dp.id_pedido = ?";
+        	    PreparedStatement pstDet = con.prepareStatement(sqlDetalles);
+        	    pstDet.setInt(1, idPedido);
+        	    ResultSet rsDet = pstDet.executeQuery();
+
+        	    StringBuilder detalles = new StringBuilder();
+        	    while (rsDet.next()) {
+        	        detalles.append(rsDet.getInt("cantidad"))
+        	                .append(" x ")
+        	                .append(rsDet.getString("nombre"))
+        	                .append(" (")
+        	                .append(rsDet.getString("descripcion"))
+        	                .append(") - ")
+        	                .append(rsDet.getDouble("precio"))
+        	                .append("€\n");
+        	    }
+        	    rsDet.close();
+        	    pstDet.close();
+
+        	    if (detalles.length() == 0) detalles.append("Sin productos");
+
+        	    Object[] fila = {idPedido, detalles.toString(), fecha, direccion, estado, ""};
+        	    modeloTabla.addRow(fila);
+        	    comboPedidos.addItem(idPedido);
+        	}
+        	rsPedidos.close();
+        	pstPedidos.close();
+
         } catch (SQLException ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error al cargar pedidos desde la base de datos", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
+
 
     private void exportarPDF() {
         Integer idPedido = (Integer) comboPedidos.getSelectedItem();
@@ -196,7 +212,7 @@ public class VentanaMisPedidos extends JFrame {
                 contentStream.newLine();
                 contentStream.newLine();
 
-                // Buscar fila del pedido
+                // Buscar fila del pedido en la tabla
                 for (int i = 0; i < modeloTabla.getRowCount(); i++) {
                     if ((Integer) modeloTabla.getValueAt(i, 0) == idPedido) {
                         contentStream.setFont(fuenteTitulo, 12);
@@ -204,8 +220,15 @@ public class VentanaMisPedidos extends JFrame {
                         contentStream.newLine();
 
                         contentStream.setFont(fuenteNormal, 12);
-                        contentStream.showText("Detalles: " + modeloTabla.getValueAt(i, 1));
-                        contentStream.newLine();
+
+                        // Mostrar cada línea de los detalles correctamente
+                        String detalles = (String) modeloTabla.getValueAt(i, 1);
+                        String[] lineas = detalles.split("\n");
+                        for (String linea : lineas) {
+                            contentStream.showText(linea);
+                            contentStream.newLine();
+                        }
+
                         contentStream.showText("Fecha: " + modeloTabla.getValueAt(i, 2));
                         contentStream.newLine();
                         contentStream.showText("Dirección: " + modeloTabla.getValueAt(i, 3));
@@ -218,6 +241,7 @@ public class VentanaMisPedidos extends JFrame {
 
                 contentStream.endText();
 
+                // Insertar logo
                 InputStream imagen = getClass().getClassLoader().getResourceAsStream("resources/images/logo.png");
                 if (imagen != null) {
                     PDImageXObject logo = PDImageXObject.createFromByteArray(doc, IOUtils.toByteArray(imagen), "logo");
@@ -236,6 +260,7 @@ public class VentanaMisPedidos extends JFrame {
         }
     }
 
+
     class AccionRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
@@ -244,12 +269,18 @@ public class VentanaMisPedidos extends JFrame {
             JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
             String estado = (String) table.getValueAt(row, 4);
             if ("pendiente".equalsIgnoreCase(estado)) {
-                JButton btnCancelar = new JButton(new ImageIcon("resources/images/x.png"));
-                btnCancelar.setPreferredSize(new Dimension(25, 25));
-                JButton btnEditar = new JButton(new ImageIcon("resources/images/lapiz.png"));
-                btnEditar.setPreferredSize(new Dimension(25, 25));
-                panel.add(btnCancelar);
-                panel.add(btnEditar);
+            	ImageIcon iconX = new ImageIcon("resources/images/x.png");
+            	Image imgX = iconX.getImage().getScaledInstance(20, 18, Image.SCALE_SMOOTH);
+            	JButton btnCancelar = new JButton(new ImageIcon(imgX));
+            	btnCancelar.setPreferredSize(new Dimension(25, 25));
+
+            	ImageIcon iconLapiz = new ImageIcon("resources/images/lapiz.png");
+            	Image imgLapiz = iconLapiz.getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
+            	JButton btnEditar = new JButton(new ImageIcon(imgLapiz));
+				btnEditar.setPreferredSize(new Dimension(25, 25));
+
+				panel.add(btnCancelar);
+				panel.add(btnEditar);
             }
             return panel;
         }

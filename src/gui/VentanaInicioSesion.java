@@ -198,6 +198,9 @@ public class VentanaInicioSesion extends JFrame {
                         rs.getString("telefono"),
                         rs.getString("contrasena")
                     );
+                    u.setId(rs.getInt("id"));  
+                
+
                 }
                 rs.close();
                 pst.close();

@@ -9,12 +9,10 @@ public class BaseDatosConfig {
 
     private static final Logger logger = Logger.getLogger(BaseDatosConfig.class.getName());
 
-    // Inicializa la base de datos
     public static Connection initBD(String nombreBD) {
         Connection con = null;
 
         try {
-            // Crear carpeta si no existe
             File carpeta = new File("resources/db");
             if (!carpeta.exists()) {
                 carpeta.mkdirs();
@@ -48,7 +46,6 @@ public class BaseDatosConfig {
         }
     }
 
-    // Crear tablas si no existen
     public static void crearTablas(Connection con) throws SQLException {
         if (con == null) {
             logger.warning("No hay conexión a la base de datos.");
@@ -109,27 +106,37 @@ public class BaseDatosConfig {
     }
     
     public static boolean insertarUsuario(Usuario u) {
-        boolean insertado = false;
         Connection con = initBD("resources/db/MyMerch.db");
         if (con != null) {
             try {
-                String sql = "INSERT INTO Usuarios(nombre, apellidos, correo, telefono, contrasena) VALUES (?, ?, ?, ?, ?)";
-                PreparedStatement pst = con.prepareStatement(sql);
+                String sql = "INSERT INTO Usuarios(nombre, apellidos, correo, telefono, contrasena) VALUES(?,?,?,?,?)";
+                PreparedStatement pst = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
                 pst.setString(1, u.getNombre());
                 pst.setString(2, u.getApellidos());
                 pst.setString(3, u.getCorreo());
                 pst.setString(4, u.getTelefono());
                 pst.setString(5, u.getContrasena());
-                pst.executeUpdate();
+
+                int rows = pst.executeUpdate();
+                if (rows == 0) return false;
+
+                ResultSet rs = pst.getGeneratedKeys();
+                if (rs.next()) {
+                    int idGenerado = rs.getInt(1);
+                    u.setId(idGenerado);
+                }
+
+                rs.close();
                 pst.close();
-                insertado = true;
-            } catch (SQLException ex) {
-                ex.printStackTrace();
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
             } finally {
                 closeBD(con);
             }
         }
-        return insertado;
+        return false;
     }
+
 
 }

@@ -33,7 +33,15 @@ public class VentanaCatalogo extends JFrame {
         lblLogo.setHorizontalAlignment(SwingConstants.CENTER);
         pSuperior.add(lblLogo, BorderLayout.CENTER);
 
-        JButton btnUser = new JButton("User");
+        
+        ImageIcon iconUser = new ImageIcon("resources/images/user.png");
+        Image imgUser = iconUser.getImage().getScaledInstance(48, 48, Image.SCALE_SMOOTH);
+        JButton btnUser = new JButton(new ImageIcon(imgUser));
+        
+        btnUser.setContentAreaFilled(false);
+        btnUser.setBorderPainted(false);
+        btnUser.setFocusPainted(false);
+
         pSuperior.add(btnUser, BorderLayout.EAST);
 
         JPopupMenu menuUser = new JPopupMenu();
