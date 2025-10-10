@@ -17,6 +17,7 @@ public class VentanaCarrito extends JFrame {
     private JPanel pProductos;
     private JLabel lblTotal;
     private JTextField txtCupon;
+    private JButton btnPagar;
 
     public VentanaCarrito(Usuario usuario, Map<String, ProductoCarrito> carrito,
                           JFrame ventanaCatalogo, Map<String, AtomicInteger> stockProductos) {
@@ -63,10 +64,8 @@ public class VentanaCarrito extends JFrame {
         });
         
         pSuperior.add(btnInicio, BorderLayout.EAST);
-
         add(pSuperior, BorderLayout.NORTH);
     }
-
 
     private void crearPanelCentral() {
         pProductos = new JPanel();
@@ -102,12 +101,24 @@ public class VentanaCarrito extends JFrame {
         pCupon.add(txtCupon);
         pCupon.add(btnAplicarCupon);
 
-        JButton btnPagar = new JButton("Pagar");
+        btnPagar = new JButton("Pagar");
         btnPagar.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnPagar.setBackground(new Color(50, 205, 50));
         btnPagar.setForeground(Color.WHITE);
         btnPagar.setFont(new Font("Tahoma", Font.BOLD, 16));
         btnPagar.setFocusPainted(false);
+        btnPagar.addActionListener(e -> {
+            String textoTotal = lblTotal.getText().replace("Total: ", "").replace(" €", "");
+            double totalConCupon = 0;
+            try {
+                totalConCupon = Double.parseDouble(textoTotal);
+            } catch (NumberFormatException ex) {
+                totalConCupon = carrito.values().stream().mapToDouble(ProductoCarrito::getSubtotal).sum();
+            }
+
+            new VentanaCrearPedido(usuario, carrito, stockProductos, totalConCupon);
+            dispose();
+        });
 
         pInferior.add(lblTotal);
         pInferior.add(Box.createRigidArea(new Dimension(0,10)));
@@ -191,6 +202,9 @@ public class VentanaCarrito extends JFrame {
         }
 
         calcularTotal();
+
+        btnPagar.setEnabled(!carrito.isEmpty());
+
         pProductos.revalidate();
         pProductos.repaint();
     }
@@ -201,6 +215,10 @@ public class VentanaCarrito extends JFrame {
     }
 
     private void aplicarCupon() {
+        if(carrito.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "El carrito está vacío");
+            return;
+        }
         String cupon = txtCupon.getText().trim().toUpperCase();
         double total = carrito.values().stream().mapToDouble(ProductoCarrito::getSubtotal).sum();
         if (cupon.equals("DESCUENTO10")) total *= 0.9;
