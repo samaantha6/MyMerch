@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import domain.Usuario;
 import domain.ProductoCarrito;
 
@@ -24,18 +25,33 @@ public class VentanaCarrito extends JFrame {
         this.stockProductos = stockProductos;
 
         setTitle("Carrito");
-        setSize(700, 600);
+        setSize(750, 600);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(10, 10));
 
+        crearPanelSuperior(ventanaCatalogo);
+        crearPanelCentral();
+        crearPanelInferior();
+
+        actualizarCarrito();
+
+        setVisible(true);
+        setResizable(false);
+    }
+
+    private void crearPanelSuperior(JFrame ventanaCatalogo) {
         JPanel pSuperior = new JPanel(new BorderLayout());
         pSuperior.setBorder(new EmptyBorder(10, 10, 10, 10));
+        pSuperior.setBackground(Color.WHITE);
 
-        JLabel lblTitulo = new JLabel("Carrito", SwingConstants.CENTER);
-        lblTitulo.setFont(new Font("Tahoma", Font.BOLD, 22));
+        JLabel lblTitulo = new JLabel("           Tu Carrito", SwingConstants.CENTER);
+        lblTitulo.setFont(new Font("Tahoma", Font.BOLD, 24));
+        lblTitulo.setForeground(Color.BLACK);
         pSuperior.add(lblTitulo, BorderLayout.CENTER);
 
-        JButton btnInicio = new JButton(new ImageIcon("resources/images/casa.png"));
+        ImageIcon iconCasa = new ImageIcon("resources/images/casa.png");
+        Image imgCasa = iconCasa.getImage().getScaledInstance(35, 35, Image.SCALE_SMOOTH);
+        JButton btnInicio = new JButton(new ImageIcon(imgCasa));
         btnInicio.setContentAreaFilled(false);
         btnInicio.setBorderPainted(false);
         btnInicio.setFocusPainted(false);
@@ -45,26 +61,42 @@ public class VentanaCarrito extends JFrame {
             ventanaCatalogo.revalidate();
             dispose();
         });
+        
         pSuperior.add(btnInicio, BorderLayout.EAST);
 
         add(pSuperior, BorderLayout.NORTH);
+    }
 
+
+    private void crearPanelCentral() {
         pProductos = new JPanel();
         pProductos.setLayout(new BoxLayout(pProductos, BoxLayout.Y_AXIS));
-        JScrollPane scroll = new JScrollPane(pProductos);
-        add(scroll, BorderLayout.CENTER);
+        pProductos.setBackground(new Color(245, 245, 245));
 
+        JScrollPane scroll = new JScrollPane(pProductos);
+        scroll.getVerticalScrollBar().setUnitIncrement(20);
+        scroll.setBorder(null);
+
+        add(scroll, BorderLayout.CENTER);
+    }
+
+    private void crearPanelInferior() {
         JPanel pInferior = new JPanel();
         pInferior.setLayout(new BoxLayout(pInferior, BoxLayout.Y_AXIS));
-        pInferior.setBorder(new EmptyBorder(10, 50, 10, 50));
+        pInferior.setBorder(new EmptyBorder(15, 50, 15, 50));
+        pInferior.setBackground(new Color(245, 245, 245));
 
         lblTotal = new JLabel("Total: 0 €");
-        lblTotal.setFont(new Font("Tahoma", Font.BOLD, 18));
+        lblTotal.setFont(new Font("Tahoma", Font.BOLD, 20));
         lblTotal.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JPanel pCupon = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
-        txtCupon = new JTextField(10);
+        pCupon.setBackground(new Color(245, 245, 245));
+        txtCupon = new JTextField(12);
         JButton btnAplicarCupon = new JButton("Aplicar Cupón");
+        btnAplicarCupon.setBackground(new Color(30, 144, 255));
+        btnAplicarCupon.setForeground(Color.WHITE);
+        btnAplicarCupon.setFocusPainted(false);
         btnAplicarCupon.addActionListener(e -> aplicarCupon());
         pCupon.add(new JLabel("Cupón:"));
         pCupon.add(txtCupon);
@@ -72,28 +104,48 @@ public class VentanaCarrito extends JFrame {
 
         JButton btnPagar = new JButton("Pagar");
         btnPagar.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnPagar.setBackground(new Color(50, 205, 50));
+        btnPagar.setForeground(Color.WHITE);
+        btnPagar.setFont(new Font("Tahoma", Font.BOLD, 16));
+        btnPagar.setFocusPainted(false);
 
         pInferior.add(lblTotal);
+        pInferior.add(Box.createRigidArea(new Dimension(0,10)));
         pInferior.add(pCupon);
         pInferior.add(Box.createRigidArea(new Dimension(0,10)));
         pInferior.add(btnPagar);
 
         add(pInferior, BorderLayout.SOUTH);
-
-        actualizarCarrito();
-
-        setVisible(true);
-        setResizable(false);
     }
 
     private void actualizarCarrito() {
         pProductos.removeAll();
+
         for (ProductoCarrito pc : carrito.values()) {
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-            panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+            JPanel panel = new JPanel(new BorderLayout(10,10));
+            panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+            panel.setBackground(Color.WHITE);
+            panel.setBorder(new LineBorder(new Color(200,200,200), 1, true));
 
             JLabel lblNombre = new JLabel(pc.getNombre());
-            lblNombre.setPreferredSize(new Dimension(200, 25));
+            lblNombre.setFont(new Font("Tahoma", Font.BOLD, 16));
+
+            JLabel lblCantidad = new JLabel(String.valueOf(pc.getCantidad()));
+            lblCantidad.setFont(new Font("Tahoma", Font.PLAIN, 14));
+            lblCantidad.setHorizontalAlignment(SwingConstants.CENTER);
+            lblCantidad.setPreferredSize(new Dimension(30,25));
+
+            JLabel lblPrecio = new JLabel(pc.getSubtotal() + " €");
+            lblPrecio.setFont(new Font("Tahoma", Font.PLAIN, 14));
+
+            JPanel panelCentro = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+            panelCentro.setOpaque(false);
+            panelCentro.add(lblNombre);
+            panelCentro.add(lblCantidad);
+            panelCentro.add(lblPrecio);
+
+            JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 5));
+            panelBotones.setOpaque(false);
 
             JButton btnMenos = new JButton("-");
             btnMenos.addActionListener(e -> {
@@ -106,10 +158,6 @@ public class VentanaCarrito extends JFrame {
                 }
                 actualizarCarrito();
             });
-
-            JLabel lblCantidad = new JLabel(String.valueOf(pc.getCantidad()));
-            lblCantidad.setPreferredSize(new Dimension(30, 25));
-            lblCantidad.setHorizontalAlignment(SwingConstants.CENTER);
 
             JButton btnMas = new JButton("+");
             btnMas.addActionListener(e -> {
@@ -124,24 +172,24 @@ public class VentanaCarrito extends JFrame {
             });
 
             JButton btnEliminar = new JButton("X");
+            btnEliminar.setForeground(Color.RED);
             btnEliminar.addActionListener(e -> {
                 stockProductos.get(pc.getNombre()).addAndGet(pc.getCantidad());
                 carrito.remove(pc.getNombre());
                 actualizarCarrito();
             });
 
-            JLabel lblPrecio = new JLabel(pc.getSubtotal() + " €");
-            lblPrecio.setPreferredSize(new Dimension(80,25));
+            panelBotones.add(btnMenos);
+            panelBotones.add(btnMas);
+            panelBotones.add(btnEliminar);
 
-            panel.add(lblNombre);
-            panel.add(btnMenos);
-            panel.add(lblCantidad);
-            panel.add(btnMas);
-            panel.add(lblPrecio);
-            panel.add(btnEliminar);
+            panel.add(panelCentro, BorderLayout.CENTER);
+            panel.add(panelBotones, BorderLayout.EAST);
 
+            pProductos.add(Box.createRigidArea(new Dimension(0,5)));
             pProductos.add(panel);
         }
+
         calcularTotal();
         pProductos.revalidate();
         pProductos.repaint();
