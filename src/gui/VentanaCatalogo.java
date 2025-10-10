@@ -251,3 +251,4 @@ public class VentanaCatalogo extends JFrame {
         dialog.setVisible(true);
     }
 }
+

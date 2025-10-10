@@ -141,4 +141,5 @@ public class VentanaCarrito extends JFrame {
         if (cupon.equals("DESCUENTO10")) total *= 0.9;
         lblTotal.setText("Total: " + total + " €");
     }
-}
+} 
+
