@@ -2,6 +2,8 @@ package gui;
 
 import java.awt.*;
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
@@ -14,15 +16,20 @@ public class VentanaModificarPedido extends JFrame {
     private static final long serialVersionUID = 1L;
     private Usuario usuario;
     private int idPedido;
-    private JTextField txtDireccion, txtPais, txtCP, txtProvincia;
+    private JTextField txtDireccion, txtCP;
+    private JComboBox<String> comboPais, comboProvincia;
     private JTable tablaProductos;
     private DefaultTableModel modeloTabla;
     private VentanaMisPedidos ventanaAnterior;
+
+    private final Map<String, String[]> provinciasPorPais = new HashMap<>();
 
     public VentanaModificarPedido(Usuario usuario, int idPedido, VentanaMisPedidos ventanaMisPedidos) {
         this.usuario = usuario;
         this.idPedido = idPedido;
         this.ventanaAnterior = ventanaMisPedidos;
+
+        inicializarProvincias();
 
         setTitle("Modificar Pedido");
         setSize(700, 500);
@@ -41,6 +48,7 @@ public class VentanaModificarPedido extends JFrame {
             this.dispose();
             ventanaAnterior.setVisible(true);
         });
+        
         pSuperior.add(btnAtras, BorderLayout.WEST);
 
         JLabel lblTitulo = new JLabel("Modificar Pedido", SwingConstants.CENTER);
@@ -79,30 +87,90 @@ public class VentanaModificarPedido extends JFrame {
 
         pestañas.addTab("Productos del pedido", pProductos);
 
-        JPanel pDetalles = new JPanel();
-        pDetalles.setLayout(new BoxLayout(pDetalles, BoxLayout.Y_AXIS));
+        JPanel pDetalles = new JPanel(new GridBagLayout());
         pDetalles.setBorder(new EmptyBorder(10, 50, 10, 50));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        txtDireccion = crearCampoEditable(pDetalles, "Dirección", "direccion");
-        txtPais = crearCampoEditable(pDetalles, "País", "pais");
-        txtCP = crearCampoEditable(pDetalles, "Código Postal", "cp");
-        txtProvincia = crearCampoEditable(pDetalles, "Provincia", "provincia");
+        int fila = 0;
 
-        pDetalles.add(Box.createVerticalGlue());
+        txtDireccion = new JTextField();
+        txtDireccion.setEditable(false);
+        JButton btnEditarDireccion = new JButton(new ImageIcon("resources/images/lapiz.png"));
+        btnEditarDireccion.setPreferredSize(new Dimension(40, 25));
+        btnEditarDireccion.setFocusPainted(false);
+        btnEditarDireccion.setContentAreaFilled(false);
+        btnEditarDireccion.setBorderPainted(false);
+
+        btnEditarDireccion.addActionListener(e -> txtDireccion.setEditable(!txtDireccion.isEditable()));
+
+        JPanel panelDireccion = new JPanel(new BorderLayout(5, 0));
+        panelDireccion.add(new JLabel("Dirección:"), BorderLayout.WEST);
+        panelDireccion.add(txtDireccion, BorderLayout.CENTER);
+        panelDireccion.add(btnEditarDireccion, BorderLayout.EAST);
+
+        gbc.gridx = 0;
+        gbc.gridy = fila++;
+        gbc.gridwidth = 2;
+        pDetalles.add(panelDireccion, gbc);
+
+        gbc.gridwidth = 1;
+        gbc.gridx = 0;
+        gbc.gridy = fila;
+        pDetalles.add(new JLabel("País:"), gbc);
+
+        comboPais = new JComboBox<>(provinciasPorPais.keySet().toArray(new String[0]));
+        comboPais.setPreferredSize(new Dimension(200, 25));
+        comboPais.addActionListener(e -> actualizarProvincias());
+        gbc.gridx = 1;
+        pDetalles.add(comboPais, gbc);
+        fila++;
+
+        gbc.gridx = 0;
+        gbc.gridy = fila;
+        pDetalles.add(new JLabel("Provincia:"), gbc);
+
+        comboProvincia = new JComboBox<>();
+        comboProvincia.setPreferredSize(new Dimension(200, 25));
+        actualizarProvincias();
+        gbc.gridx = 1;
+        pDetalles.add(comboProvincia, gbc);
+        fila++;
+
+        txtCP = new JTextField();
+        txtCP.setEditable(false);
+        JButton btnEditarCP = new JButton(new ImageIcon("resources/images/lapiz.png"));
+        btnEditarCP.setPreferredSize(new Dimension(40, 25));
+        btnEditarCP.setFocusPainted(false);
+        btnEditarCP.setContentAreaFilled(false);
+        btnEditarCP.setBorderPainted(false);
+
+        btnEditarCP.addActionListener(e -> txtCP.setEditable(!txtCP.isEditable()));
+
+        JPanel panelCP = new JPanel(new BorderLayout(5, 0));
+        panelCP.add(new JLabel("Código Postal:"), BorderLayout.WEST);
+        panelCP.add(txtCP, BorderLayout.CENTER);
+        panelCP.add(btnEditarCP, BorderLayout.EAST);
+
+        gbc.gridx = 0;
+        gbc.gridy = fila++;
+        gbc.gridwidth = 2;
+        pDetalles.add(panelCP, gbc);
+
         JButton btnConfirmar = new JButton("Confirmar");
-        btnConfirmar.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnConfirmar.addActionListener(e -> actualizarDireccion());
-
-        pDetalles.add(Box.createRigidArea(new Dimension(0, 20)));
-        pDetalles.add(btnConfirmar);
-        pDetalles.add(Box.createVerticalGlue());
+        gbc.gridy = fila++;
+        gbc.gridx = 0;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        pDetalles.add(btnConfirmar, gbc);
 
         pestañas.addTab("Detalles", pDetalles);
 
         pCentro.add(pestañas, BorderLayout.CENTER);
         add(pCentro, BorderLayout.CENTER);
 
-        // Cargar datos desde BD
         cargarProductos();
         cargarDetalles();
 
@@ -110,29 +178,27 @@ public class VentanaModificarPedido extends JFrame {
         setResizable(false);
     }
 
-    private JTextField crearCampoEditable(JPanel panelDestino, String labelTexto, String nombreCampo) {
-        JPanel panel = new JPanel(new BorderLayout(5, 5));
-        JLabel lbl = new JLabel(labelTexto + ":");
-        JTextField txt = new JTextField();
-        txt.setEditable(false);
+    private void inicializarProvincias() {
+        provinciasPorPais.put("España", new String[]{"Madrid", "Barcelona", "Valencia", "Sevilla", "Bilbao"});
+        provinciasPorPais.put("Francia", new String[]{"París", "Lyon", "Marsella"});
+        provinciasPorPais.put("Italia", new String[]{"Roma", "Milán", "Nápoles"});
+        provinciasPorPais.put("Portugal", new String[]{"Lisboa", "Oporto"});
+        provinciasPorPais.put("Alemania", new String[]{"Berlín", "Hamburgo", "Múnich"});
+        provinciasPorPais.put("Reino Unido", new String[]{"Londres", "Manchester"});
+        provinciasPorPais.put("Estados Unidos", new String[]{"Nueva York", "Los Ángeles", "Chicago"});
+        provinciasPorPais.put("México", new String[]{"Ciudad de México", "Guadalajara"});
+        provinciasPorPais.put("Argentina", new String[]{"Buenos Aires", "Córdoba"});
+        provinciasPorPais.put("Colombia", new String[]{"Bogotá", "Medellín"});
+    }
 
-        
-        JButton btnEditar = new JButton(new ImageIcon("resources/images/lapiz.png")); 
-        btnEditar.setPreferredSize(new Dimension(40, 25));
-        btnEditar.setFocusPainted(false);
-        btnEditar.setContentAreaFilled(false);
-        btnEditar.setBorderPainted(false);        
-        btnEditar.addActionListener(e -> txt.setEditable(true));
-
-        panel.add(lbl, BorderLayout.WEST);
-        panel.add(txt, BorderLayout.CENTER);
-        panel.add(btnEditar, BorderLayout.EAST);
-        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
-
-        panelDestino.add(panel);
-        panelDestino.add(Box.createRigidArea(new Dimension(0, 10)));
-
-        return txt;
+    private void actualizarProvincias() {
+        String paisSeleccionado = (String) comboPais.getSelectedItem();
+        comboProvincia.removeAllItems();
+        if (paisSeleccionado != null && provinciasPorPais.containsKey(paisSeleccionado)) {
+            for (String prov : provinciasPorPais.get(paisSeleccionado)) {
+                comboProvincia.addItem(prov);
+            }
+        }
     }
 
     private void cargarProductos() {
@@ -147,14 +213,9 @@ public class VentanaModificarPedido extends JFrame {
             ResultSet rs = pst.executeQuery();
 
             while (rs.next()) {
-                String detallesProducto = rs.getString("nombre") + " (" + rs.getString("descripcion") + ")" ;
+                String detallesProducto = rs.getString("nombre") + " (" + rs.getString("descripcion") + ")";
                 String precioConEuro = rs.getDouble("precio") + " €";
-
-                modeloTabla.addRow(new Object[]{
-                        detallesProducto,
-                        rs.getInt("cantidad"),
-                        precioConEuro
-                });
+                modeloTabla.addRow(new Object[]{detallesProducto, rs.getInt("cantidad"), precioConEuro});
             }
 
             rs.close();
@@ -174,9 +235,10 @@ public class VentanaModificarPedido extends JFrame {
 
             if (rs.next()) {
                 txtDireccion.setText(rs.getString("direccion"));
-                txtPais.setText(rs.getString("pais"));
                 txtCP.setText(rs.getString("cp"));
-                txtProvincia.setText(rs.getString("provincia"));
+                comboPais.setSelectedItem(rs.getString("pais"));
+                actualizarProvincias();
+                comboProvincia.setSelectedItem(rs.getString("provincia"));
             }
 
             rs.close();
@@ -186,25 +248,21 @@ public class VentanaModificarPedido extends JFrame {
         }
     }
 
-    // Guardar cambios de dirección en BD y actualizar tabla de MisPedidos
     private void actualizarDireccion() {
         try (Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db")) {
-            String sql = "UPDATE Pedidos SET direccion=?, pais=?, cp=?, provincia=? WHERE id=?";
+            String sql = "UPDATE Pedidos SET direccion=?, cp=?, pais=?, provincia=? WHERE id=?";
             PreparedStatement pst = con.prepareStatement(sql);
             pst.setString(1, txtDireccion.getText());
-            pst.setString(2, txtPais.getText());
-            pst.setString(3, txtCP.getText());
-            pst.setString(4, txtProvincia.getText());
+            pst.setString(2, txtCP.getText());
+            pst.setString(3, (String) comboPais.getSelectedItem());
+            pst.setString(4, (String) comboProvincia.getSelectedItem());
             pst.setInt(5, idPedido);
 
             pst.executeUpdate();
             pst.close();
 
             JOptionPane.showMessageDialog(this, "Dirección actualizada correctamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-
-            // Actualizar tabla en ventana anterior
             ventanaAnterior.cargarPedidosDesdeBD();
-
             this.dispose();
         } catch (SQLException ex) {
             ex.printStackTrace();
