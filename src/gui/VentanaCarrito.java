@@ -142,4 +142,3 @@ public class VentanaCarrito extends JFrame {
         lblTotal.setText("Total: " + total + " €");
     }
 } 
-
