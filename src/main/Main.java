@@ -9,7 +9,6 @@ import javax.swing.SwingUtilities;
 import db.BaseDatosConfig;
 import gui.VentanaInicioSesion;
 
-
 public class Main {
 
 	public static void main(String[] args) {
@@ -33,4 +32,3 @@ public class Main {
         });
     }
 }
-

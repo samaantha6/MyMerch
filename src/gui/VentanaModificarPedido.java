@@ -1,7 +1,6 @@
 package gui;
 
 import java.awt.*;
-import java.awt.event.*;
 import java.sql.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -23,14 +22,13 @@ public class VentanaModificarPedido extends JFrame {
     public VentanaModificarPedido(Usuario usuario, int idPedido, VentanaMisPedidos ventanaMisPedidos) {
         this.usuario = usuario;
         this.idPedido = idPedido;
-        this.ventanaAnterior = ventanaAnterior;
+        this.ventanaAnterior = ventanaMisPedidos;
 
         setTitle("Modificar Pedido");
         setSize(700, 500);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        // PANEL SUPERIOR: Flecha atrás + título
         JPanel pSuperior = new JPanel(new BorderLayout());
         pSuperior.setBorder(new EmptyBorder(10, 10, 10, 10));
 
@@ -40,8 +38,8 @@ public class VentanaModificarPedido extends JFrame {
         btnAtras.setBorderPainted(false);
         btnAtras.setContentAreaFilled(false);
         btnAtras.addActionListener(e -> {
-            this.dispose(); // cerrar esta ventana
-            ventanaAnterior.setVisible(true); // volver a la ventana anterior
+            this.dispose();
+            ventanaAnterior.setVisible(true);
         });
         pSuperior.add(btnAtras, BorderLayout.WEST);
 
@@ -51,7 +49,6 @@ public class VentanaModificarPedido extends JFrame {
 
         add(pSuperior, BorderLayout.NORTH);
 
-        // PANEL CENTRO: ID y pestañas
         JPanel pCentro = new JPanel(new BorderLayout());
         pCentro.setBorder(new EmptyBorder(10, 10, 10, 10));
 
@@ -59,10 +56,8 @@ public class VentanaModificarPedido extends JFrame {
         lblID.setFont(new Font("Tahoma", Font.PLAIN, 16));
         pCentro.add(lblID, BorderLayout.NORTH);
 
-        // PESTAÑAS
         JTabbedPane pestañas = new JTabbedPane();
 
-        // --- PESTAÑA 1: Productos ---
         JPanel pProductos = new JPanel(new BorderLayout());
         modeloTabla = new DefaultTableModel(new String[]{"Producto", "Cantidad", "Precio"}, 0) {
             @Override
@@ -70,6 +65,7 @@ public class VentanaModificarPedido extends JFrame {
                 return false;
             }
         };
+        
         tablaProductos = new JTable(modeloTabla);
         tablaProductos.setRowHeight(30);
         JScrollPane scrollProductos = new JScrollPane(tablaProductos);
@@ -83,15 +79,14 @@ public class VentanaModificarPedido extends JFrame {
 
         pestañas.addTab("Productos del pedido", pProductos);
 
-        // --- PESTAÑA 2: Detalles ---
         JPanel pDetalles = new JPanel();
         pDetalles.setLayout(new BoxLayout(pDetalles, BoxLayout.Y_AXIS));
         pDetalles.setBorder(new EmptyBorder(10, 50, 10, 50));
 
-        txtDireccion = crearCampoEditable("Dirección", "direccion");
-        txtPais = crearCampoEditable("País", "pais");
-        txtCP = crearCampoEditable("Código Postal", "cp");
-        txtProvincia = crearCampoEditable("Provincia", "provincia");
+        txtDireccion = crearCampoEditable(pDetalles, "Dirección", "direccion");
+        txtPais = crearCampoEditable(pDetalles, "País", "pais");
+        txtCP = crearCampoEditable(pDetalles, "Código Postal", "cp");
+        txtProvincia = crearCampoEditable(pDetalles, "Provincia", "provincia");
 
         pDetalles.add(Box.createVerticalGlue());
         JButton btnConfirmar = new JButton("Confirmar");
@@ -105,7 +100,6 @@ public class VentanaModificarPedido extends JFrame {
         pestañas.addTab("Detalles", pDetalles);
 
         pCentro.add(pestañas, BorderLayout.CENTER);
-
         add(pCentro, BorderLayout.CENTER);
 
         // Cargar datos desde BD
@@ -116,16 +110,18 @@ public class VentanaModificarPedido extends JFrame {
         setResizable(false);
     }
 
-    // Método para crear campos de detalles con lápiz para modificar
-    private JTextField crearCampoEditable(String labelTexto, String nombreCampo) {
+    private JTextField crearCampoEditable(JPanel panelDestino, String labelTexto, String nombreCampo) {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         JLabel lbl = new JLabel(labelTexto + ":");
         JTextField txt = new JTextField();
         txt.setEditable(false);
 
-        JButton btnEditar = new JButton("✎"); // icono lápiz simple
+        
+        JButton btnEditar = new JButton(new ImageIcon("resources/images/lapiz.png")); 
         btnEditar.setPreferredSize(new Dimension(40, 25));
         btnEditar.setFocusPainted(false);
+        btnEditar.setContentAreaFilled(false);
+        btnEditar.setBorderPainted(false);        
         btnEditar.addActionListener(e -> txt.setEditable(true));
 
         panel.add(lbl, BorderLayout.WEST);
@@ -133,22 +129,16 @@ public class VentanaModificarPedido extends JFrame {
         panel.add(btnEditar, BorderLayout.EAST);
         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
 
-        getContentPane().add(panel);
-        JPanel contenedor = new JPanel();
-        contenedor.setLayout(new BoxLayout(contenedor, BoxLayout.Y_AXIS));
-        contenedor.add(panel);
-
-        // Añadir al panel de detalles
-        ((JPanel) getContentPane().getComponent(1)).add(panel);
+        panelDestino.add(panel);
+        panelDestino.add(Box.createRigidArea(new Dimension(0, 10)));
 
         return txt;
     }
 
-    // Cargar productos del pedido
     private void cargarProductos() {
         modeloTabla.setRowCount(0);
         try (Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db")) {
-            String sql = "SELECT dp.cantidad, prod.nombre, prod.precio " +
+            String sql = "SELECT dp.cantidad, prod.nombre, prod.descripcion, prod.precio " +
                          "FROM DetallePedido dp " +
                          "JOIN Productos prod ON dp.id_producto = prod.id " +
                          "WHERE dp.id_pedido = ?";
@@ -157,10 +147,13 @@ public class VentanaModificarPedido extends JFrame {
             ResultSet rs = pst.executeQuery();
 
             while (rs.next()) {
+                String detallesProducto = rs.getString("nombre") + " (" + rs.getString("descripcion") + ")" ;
+                String precioConEuro = rs.getDouble("precio") + " €";
+
                 modeloTabla.addRow(new Object[]{
-                        rs.getString("nombre"),
+                        detallesProducto,
                         rs.getInt("cantidad"),
-                        rs.getDouble("precio")
+                        precioConEuro
                 });
             }
 
@@ -172,7 +165,6 @@ public class VentanaModificarPedido extends JFrame {
         }
     }
 
-    // Cargar detalles de dirección
     private void cargarDetalles() {
         try (Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db")) {
             String sql = "SELECT direccion, pais, cp, provincia FROM Pedidos WHERE id = ?";

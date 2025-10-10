@@ -18,7 +18,6 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 
-import domain.Pedido;
 import domain.Usuario;
 import db.BaseDatosConfig;
 
@@ -31,8 +30,7 @@ public class VentanaMisPedidos extends JFrame {
     private JComboBox<Integer> comboPedidos;
 
     public VentanaMisPedidos(Usuario usuario) {
-    	System.out.println("ID de usuario: " + usuario.getId());
-
+        System.out.println("ID de usuario: " + usuario.getId());
         this.usuario = usuario;
 
         setTitle("Mis Pedidos");
@@ -59,20 +57,16 @@ public class VentanaMisPedidos extends JFrame {
         pIzq.add(lblPedidos);
         pSuperior.add(pIzq, BorderLayout.WEST);
 
-        
         ImageIcon iconCasa = new ImageIcon("resources/images/casa.png");
-    	Image imgCasa = iconCasa.getImage().getScaledInstance(35, 35, Image.SCALE_SMOOTH);
-    	JButton btnHome = new JButton(new ImageIcon(imgCasa));
-		
+        Image imgCasa = iconCasa.getImage().getScaledInstance(35, 35, Image.SCALE_SMOOTH);
+        JButton btnHome = new JButton(new ImageIcon(imgCasa));
         btnHome.setContentAreaFilled(false);
         btnHome.setBorderPainted(false);
         btnHome.setFocusPainted(false);
-        
         btnHome.addActionListener(e -> {
             new VentanaCatalogo(usuario);
             dispose();
         });
-        
         pSuperior.add(btnHome, BorderLayout.EAST);
         add(pSuperior, BorderLayout.NORTH);
 
@@ -81,7 +75,8 @@ public class VentanaMisPedidos extends JFrame {
         modeloTabla = new DefaultTableModel(columnas, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; 
+                // Solo editable la columna "Acciones"
+                return getColumnName(column).equals("Acciones");
             }
         };
 
@@ -89,7 +84,7 @@ public class VentanaMisPedidos extends JFrame {
         tablaPedidos.setRowHeight(40);
 
         tablaPedidos.getColumn("Acciones").setCellRenderer(new AccionRenderer());
-        tablaPedidos.getColumn("Acciones").setCellEditor(new AccionEditor(new JCheckBox()));
+        tablaPedidos.getColumn("Acciones").setCellEditor(new AccionEditor());
 
         JScrollPane scroll = new JScrollPane(tablaPedidos);
         add(scroll, BorderLayout.CENTER);
@@ -128,55 +123,54 @@ public class VentanaMisPedidos extends JFrame {
         comboPedidos.removeAllItems();
 
         try (Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db")) {
-        	String sqlPedidos = "SELECT * FROM Pedidos WHERE id_usuario = ? ORDER BY id";
-        	PreparedStatement pstPedidos = con.prepareStatement(sqlPedidos);
-        	pstPedidos.setInt(1, usuario.getId());
-        	ResultSet rsPedidos = pstPedidos.executeQuery();
+            String sqlPedidos = "SELECT * FROM Pedidos WHERE id_usuario = ? ORDER BY id";
+            PreparedStatement pstPedidos = con.prepareStatement(sqlPedidos);
+            pstPedidos.setInt(1, usuario.getId());
+            ResultSet rsPedidos = pstPedidos.executeQuery();
 
-        	while (rsPedidos.next()) {
-        	    int idPedido = rsPedidos.getInt("id");
-        	    String fecha = rsPedidos.getString("fecha");
-        	    String estado = rsPedidos.getString("estado");
-        	    String direccion = "No definida";
+            while (rsPedidos.next()) {
+                int idPedido = rsPedidos.getInt("id");
+                String fecha = rsPedidos.getString("fecha");
+                String estado = rsPedidos.getString("estado");
+                String direccion = rsPedidos.getString("direccion");
 
-        	    // Ahora obtenemos los detalles de cada pedido
-        	    String sqlDetalles = "SELECT dp.cantidad, prod.nombre, prod.descripcion, prod.precio " +
-        	                         "FROM DetallePedido dp " +
-        	                         "JOIN Productos prod ON dp.id_producto = prod.id " +
-        	                         "WHERE dp.id_pedido = ?";
-        	    PreparedStatement pstDet = con.prepareStatement(sqlDetalles);
-        	    pstDet.setInt(1, idPedido);
-        	    ResultSet rsDet = pstDet.executeQuery();
+                // Detalles del pedido
+                String sqlDetalles = "SELECT dp.cantidad, prod.nombre, prod.descripcion, prod.precio " +
+                                     "FROM DetallePedido dp " +
+                                     "JOIN Productos prod ON dp.id_producto = prod.id " +
+                                     "WHERE dp.id_pedido = ?";
+                PreparedStatement pstDet = con.prepareStatement(sqlDetalles);
+                pstDet.setInt(1, idPedido);
+                ResultSet rsDet = pstDet.executeQuery();
 
-        	    StringBuilder detalles = new StringBuilder();
-        	    while (rsDet.next()) {
-        	        detalles.append(rsDet.getInt("cantidad"))
-        	                .append(" x ")
-        	                .append(rsDet.getString("nombre"))
-        	                .append(" (")
-        	                .append(rsDet.getString("descripcion"))
-        	                .append(") - ")
-        	                .append(rsDet.getDouble("precio"))
-        	                .append("€\n");
-        	    }
-        	    rsDet.close();
-        	    pstDet.close();
+                StringBuilder detalles = new StringBuilder();
+                while (rsDet.next()) {
+                    detalles.append(rsDet.getInt("cantidad"))
+                            .append(" x ")
+                            .append(rsDet.getString("nombre"))
+                            .append(" (")
+                            .append(rsDet.getString("descripcion"))
+                            .append(") - ")
+                            .append(rsDet.getDouble("precio"))
+                            .append("€\n");
+                }
+                rsDet.close();
+                pstDet.close();
 
-        	    if (detalles.length() == 0) detalles.append("Sin productos");
+                if (detalles.length() == 0) detalles.append("Sin productos");
 
-        	    Object[] fila = {idPedido, detalles.toString(), fecha, direccion, estado, ""};
-        	    modeloTabla.addRow(fila);
-        	    comboPedidos.addItem(idPedido);
-        	}
-        	rsPedidos.close();
-        	pstPedidos.close();
+                Object[] fila = {idPedido, detalles.toString(), fecha, direccion, estado, ""};
+                modeloTabla.addRow(fila);
+                comboPedidos.addItem(idPedido);
+            }
+            rsPedidos.close();
+            pstPedidos.close();
 
         } catch (SQLException ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error al cargar pedidos desde la base de datos", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-
 
     private void exportarPDF() {
         Integer idPedido = (Integer) comboPedidos.getSelectedItem();
@@ -212,7 +206,7 @@ public class VentanaMisPedidos extends JFrame {
                 contentStream.newLine();
                 contentStream.newLine();
 
-                // Buscar fila del pedido en la tabla
+                // Mostrar detalles del pedido
                 for (int i = 0; i < modeloTabla.getRowCount(); i++) {
                     if ((Integer) modeloTabla.getValueAt(i, 0) == idPedido) {
                         contentStream.setFont(fuenteTitulo, 12);
@@ -220,11 +214,8 @@ public class VentanaMisPedidos extends JFrame {
                         contentStream.newLine();
 
                         contentStream.setFont(fuenteNormal, 12);
-
-                        // Mostrar cada línea de los detalles correctamente
                         String detalles = (String) modeloTabla.getValueAt(i, 1);
-                        String[] lineas = detalles.split("\n");
-                        for (String linea : lineas) {
+                        for (String linea : detalles.split("\n")) {
                             contentStream.showText(linea);
                             contentStream.newLine();
                         }
@@ -241,7 +232,6 @@ public class VentanaMisPedidos extends JFrame {
 
                 contentStream.endText();
 
-                // Insertar logo
                 InputStream imagen = getClass().getClassLoader().getResourceAsStream("resources/images/logo.png");
                 if (imagen != null) {
                     PDImageXObject logo = PDImageXObject.createFromByteArray(doc, IOUtils.toByteArray(imagen), "logo");
@@ -259,7 +249,6 @@ public class VentanaMisPedidos extends JFrame {
             JOptionPane.showMessageDialog(this, "Error al generar PDF", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-
 
     class AccionRenderer extends DefaultTableCellRenderer {
         @Override
@@ -279,51 +268,95 @@ public class VentanaMisPedidos extends JFrame {
                 panel.add(btnEditar);
             }
             return panel;
-        
+        }
     }
 
-            
-        }
-        
-
-    class AccionEditor extends DefaultCellEditor {
+    class AccionEditor extends AbstractCellEditor implements TableCellEditor {
         private JPanel panel;
+        private JButton btnCancelar;
+        private JButton btnEditar;
 
-        public AccionEditor(JCheckBox checkBox) {
-            super(checkBox);
+        public AccionEditor() {
             panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
+
+            btnCancelar = new JButton(new ImageIcon("resources/images/x.png"));
+            btnCancelar.setPreferredSize(new Dimension(25, 25));
+            btnCancelar.addActionListener(e -> {
+                JTable table = (JTable) SwingUtilities.getAncestorOfClass(JTable.class, panel);
+                if (table != null) {
+                    int row = table.getEditingRow();
+                    if (row != -1) {
+                        int opcion = JOptionPane.showConfirmDialog(
+                                VentanaMisPedidos.this,
+                                "¿Está seguro de que desea cancelar su pedido?",
+                                "Confirmar Cancelación",
+                                JOptionPane.YES_NO_OPTION
+                        );
+                        if (opcion == JOptionPane.YES_OPTION) {
+                            int idPedido = (Integer) table.getValueAt(row, 0);
+                            cancelarPedido(idPedido);
+                            table.setValueAt("Cancelado", row, 4); // actualizar tabla visual
+                        }
+                        fireEditingStopped();
+                    }
+                }
+            });
+
+            btnEditar = new JButton(new ImageIcon("resources/images/lapiz.png"));
+            btnEditar.setPreferredSize(new Dimension(25, 25));
+            btnEditar.addActionListener(e -> {
+                JTable table = (JTable) SwingUtilities.getAncestorOfClass(JTable.class, panel);
+                if (table != null) {
+                    int row = table.getEditingRow();
+                    if (row != -1) {
+                        int idPedido = (Integer) table.getValueAt(row, 0);
+                        new VentanaModificarPedido(usuario, idPedido, VentanaMisPedidos.this);
+                        fireEditingStopped();
+                    }
+                }
+            });
         }
 
         @Override
         public Component getTableCellEditorComponent(JTable table, Object value,
                                                      boolean isSelected, int row, int column) {
-
             panel.removeAll();
             String estado = (String) table.getValueAt(row, 4);
-            if ("pendiente".equalsIgnoreCase(estado)) {
 
-                JButton btnCancelar = new JButton(new ImageIcon("resources/images/x.png"));
-                btnCancelar.setPreferredSize(new Dimension(25, 25));
-                btnCancelar.addActionListener(e -> {
-                    table.setValueAt("Cancelado", row, 4);
-                    fireEditingStopped();
-                });
-
-                JButton btnEditar = new JButton(new ImageIcon("resources/images/lapiz.png"));
-                btnEditar.setPreferredSize(new Dimension(25, 25));
-                btnEditar.addActionListener(e -> {
-                    int idPedido = (Integer) table.getValueAt(row, 0);
-                    new VentanaModificarPedido(usuario, idPedido, VentanaMisPedidos.this);
-                    fireEditingStopped();
-                });
-
+            if ("Pendiente".equalsIgnoreCase(estado)) {
                 panel.add(btnCancelar);
                 panel.add(btnEditar);
             }
 
             return panel;
         }
-    }
 
+        @Override
+        public Object getCellEditorValue() {
+            return null;
+        }
+
+        // Método para actualizar el estado del pedido en la BD
+        private void cancelarPedido(int idPedido) {
+            try (Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db")) {
+                String sql = "UPDATE Pedidos SET estado = ? WHERE id = ?";
+                PreparedStatement pst = con.prepareStatement(sql);
+                pst.setString(1, "Cancelado");
+                pst.setInt(2, idPedido);
+                pst.executeUpdate();
+                pst.close();
+                JOptionPane.showMessageDialog(VentanaMisPedidos.this,
+                        "El pedido ha sido cancelado correctamente",
+                        "Pedido Cancelado",
+                        JOptionPane.INFORMATION_MESSAGE);
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(VentanaMisPedidos.this,
+                        "Error al cancelar el pedido",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
 
 }

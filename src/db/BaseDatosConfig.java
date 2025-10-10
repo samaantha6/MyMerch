@@ -82,7 +82,7 @@ public class BaseDatosConfig {
             "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
             "id_usuario INTEGER NOT NULL, " +
             "fecha TEXT NOT NULL, " +
-            "estado TEXT DEFAULT 'pendiente', " +
+            "estado TEXT DEFAULT 'Pendiente', " +
             "direccion TEXT DEFAULT '', " +
             "pais TEXT DEFAULT '', " +
             "cp TEXT DEFAULT '', " +
