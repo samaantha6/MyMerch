@@ -21,7 +21,14 @@ public class VentanaCatalogo extends JFrame {
         JPanel pSuperior = new JPanel(new BorderLayout());
         pSuperior.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JButton btnCarrito = new JButton("Carrito");
+        ImageIcon iconCarrito = new ImageIcon("resources/images/cesta.png");
+        Image imgCarrito = iconCarrito.getImage().getScaledInstance(44, 44, Image.SCALE_SMOOTH);
+        JButton btnCarrito = new JButton(new ImageIcon(imgCarrito));
+        
+        btnCarrito.setContentAreaFilled(false);
+        btnCarrito.setBorderPainted(false);
+        btnCarrito.setFocusPainted(false);
+        
         pSuperior.add(btnCarrito, BorderLayout.WEST);
 
         ImageIcon iconLogo = new ImageIcon("resources/images/logo.png");
