@@ -202,6 +202,5 @@ public class BaseDatosConfig {
         }
         return lista;
     }
-
 }
 
