@@ -22,8 +22,7 @@ public class Main {
 	    }
 	    
 	    BaseDatosConfig.closeBD(con);
-	
-	    
+	 
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {

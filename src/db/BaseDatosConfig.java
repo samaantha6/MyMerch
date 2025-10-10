@@ -2,6 +2,8 @@ package db;
 
 import java.io.File;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.*;
 import domain.*;
 
@@ -18,7 +20,6 @@ public class BaseDatosConfig {
                 carpeta.mkdirs();
             }
 
-            // Conectar
             Class.forName("org.sqlite.JDBC");
             con = DriverManager.getConnection("jdbc:sqlite:" + nombreBD);
             logger.info("Conexión con la base de datos establecida correctamente.");
@@ -72,11 +73,12 @@ public class BaseDatosConfig {
             "nombre TEXT NOT NULL, " +
             "descripcion TEXT, " +
             "precio REAL NOT NULL, " +
-            "imagen TEXT" +
+            "imagen TEXT, " +
+            "stock INTEGER DEFAULT 0" +
             ");"
         );
 
-        // Tabla Pedidos (adaptada para dirección)
+        // Tabla Pedidos
         stmt.execute(
             "CREATE TABLE IF NOT EXISTS Pedidos (" +
             "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -124,8 +126,7 @@ public class BaseDatosConfig {
 
                 ResultSet rs = pst.getGeneratedKeys();
                 if (rs.next()) {
-                    int idGenerado = rs.getInt(1);
-                    u.setId(idGenerado);
+                    u.setId(rs.getInt(1));
                 }
 
                 rs.close();
@@ -138,6 +139,68 @@ public class BaseDatosConfig {
             }
         }
         return false;
+    }
+
+    public static boolean insertarProducto(Producto p) {
+        Connection con = initBD("resources/db/MyMerch.db");
+        if (con != null) {
+            try {
+                String sql = "INSERT INTO Productos(nombre, descripcion, precio, imagen, stock) VALUES(?,?,?,?,?)";
+                PreparedStatement pst = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                pst.setString(1, p.getNombre());
+                pst.setString(2, p.getDescripcion());
+                pst.setDouble(3, p.getPrecio());
+                pst.setString(4, p.getImagen());
+                pst.setInt(5, p.getStock());
+
+                int rows = pst.executeUpdate();
+                if (rows == 0) return false;
+
+                ResultSet rs = pst.getGeneratedKeys();
+                if (rs.next()) {
+                    p.setId(rs.getInt(1));
+                }
+
+                rs.close();
+                pst.close();
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+            } finally {
+                closeBD(con);
+            }
+        }
+        return false;
+    }
+
+    public static List<Producto> obtenerProductos() {
+        List<Producto> lista = new ArrayList<>();
+        Connection con = initBD("resources/db/MyMerch.db");
+        if(con != null) {
+            try {
+                Statement stmt = con.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT * FROM Productos");
+
+                while(rs.next()) {
+                    int id = rs.getInt("id");
+                    String nombre = rs.getString("nombre");
+                    String descripcion = rs.getString("descripcion");
+                    double precio = rs.getDouble("precio");
+                    String imagen = rs.getString("imagen");
+                    int stock = rs.getInt("stock");
+
+                    lista.add(new Producto(id, nombre, descripcion, precio, imagen, stock));
+                }
+
+                rs.close();
+                stmt.close();
+            } catch(SQLException e) {
+                e.printStackTrace();
+            } finally {
+                closeBD(con);
+            }
+        }
+        return lista;
     }
 
 }
