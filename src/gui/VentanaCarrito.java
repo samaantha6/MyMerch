@@ -1,8 +1,8 @@
 package gui;
 
 import java.awt.*;
-import java.awt.event.*;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import domain.Usuario;
@@ -12,13 +12,16 @@ public class VentanaCarrito extends JFrame {
 
     private Usuario usuario;
     private Map<String, ProductoCarrito> carrito;
+    private Map<String, AtomicInteger> stockProductos;
     private JPanel pProductos;
     private JLabel lblTotal;
     private JTextField txtCupon;
 
-    public VentanaCarrito(Usuario usuario, Map<String, ProductoCarrito> carrito, JFrame ventanaCatalogo) {
+    public VentanaCarrito(Usuario usuario, Map<String, ProductoCarrito> carrito,
+                          JFrame ventanaCatalogo, Map<String, AtomicInteger> stockProductos) {
         this.usuario = usuario;
         this.carrito = carrito;
+        this.stockProductos = stockProductos;
 
         setTitle("Carrito");
         setSize(700, 600);
@@ -38,6 +41,8 @@ public class VentanaCarrito extends JFrame {
         btnInicio.setFocusPainted(false);
         btnInicio.addActionListener(e -> {
             ventanaCatalogo.setVisible(true);
+            ventanaCatalogo.repaint();
+            ventanaCatalogo.revalidate();
             dispose();
         });
         pSuperior.add(btnInicio, BorderLayout.EAST);
@@ -92,8 +97,13 @@ public class VentanaCarrito extends JFrame {
 
             JButton btnMenos = new JButton("-");
             btnMenos.addActionListener(e -> {
-                if (pc.getCantidad() > 1) pc.setCantidad(pc.getCantidad() - 1);
-                else carrito.remove(pc.getNombre());
+                if (pc.getCantidad() > 1) {
+                    pc.setCantidad(pc.getCantidad() - 1);
+                    stockProductos.get(pc.getNombre()).incrementAndGet();
+                } else {
+                    stockProductos.get(pc.getNombre()).addAndGet(pc.getCantidad());
+                    carrito.remove(pc.getNombre());
+                }
                 actualizarCarrito();
             });
 
@@ -103,12 +113,19 @@ public class VentanaCarrito extends JFrame {
 
             JButton btnMas = new JButton("+");
             btnMas.addActionListener(e -> {
-                pc.setCantidad(pc.getCantidad() + 1);
-                actualizarCarrito();
+                int stockDisponible = stockProductos.get(pc.getNombre()).get();
+                if (stockDisponible > 0) {
+                    pc.setCantidad(pc.getCantidad() + 1);
+                    stockProductos.get(pc.getNombre()).decrementAndGet();
+                    actualizarCarrito();
+                } else {
+                    JOptionPane.showMessageDialog(this, "No hay más stock disponible");
+                }
             });
 
             JButton btnEliminar = new JButton("X");
             btnEliminar.addActionListener(e -> {
+                stockProductos.get(pc.getNombre()).addAndGet(pc.getCantidad());
                 carrito.remove(pc.getNombre());
                 actualizarCarrito();
             });
@@ -141,4 +158,4 @@ public class VentanaCarrito extends JFrame {
         if (cupon.equals("DESCUENTO10")) total *= 0.9;
         lblTotal.setText("Total: " + total + " €");
     }
-} 
+}

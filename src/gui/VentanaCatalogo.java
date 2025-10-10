@@ -3,7 +3,6 @@ package gui;
 import java.awt.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.swing.*;
 import domain.Usuario;
 import domain.Producto;
@@ -15,6 +14,7 @@ public class VentanaCatalogo extends JFrame {
     private static final long serialVersionUID = 1L;
     private Usuario usuario;
     private Map<String, ProductoCarrito> carrito = new HashMap<>();
+    private Map<String, AtomicInteger> stockProductos = new HashMap<>();
     private JPanel pCentral;
     private JLabel lblCargando;
 
@@ -77,7 +77,7 @@ public class VentanaCatalogo extends JFrame {
 
         add(pSuperior, BorderLayout.NORTH);
 
-        btnCarrito.addActionListener(e -> new VentanaCarrito(usuario, carrito, this));
+        btnCarrito.addActionListener(e -> new VentanaCarrito(usuario, carrito, this, stockProductos));
     }
 
     private void crearPanelCentral() {
@@ -85,7 +85,6 @@ public class VentanaCatalogo extends JFrame {
         pCentral = new JPanel(new GridLayout(0, 3, 20, 20));
         pCentral.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Hilo
         JScrollPane scroll = new JScrollPane(pCentral);
         scroll.getVerticalScrollBar().setUnitIncrement(30);
         scroll.getHorizontalScrollBar().setUnitIncrement(30);
@@ -127,6 +126,7 @@ public class VentanaCatalogo extends JFrame {
     private void cargarProductos() {
         java.util.List<Producto> listaProductos = BaseDatosConfig.obtenerProductos();
         for (Producto prod : listaProductos) {
+            stockProductos.putIfAbsent(prod.getNombre(), new AtomicInteger(prod.getStock()));
             pCentral.add(crearPanelProducto(prod));
         }
         pCentral.revalidate();
@@ -138,9 +138,6 @@ public class VentanaCatalogo extends JFrame {
         double precio = prod.getPrecio();
         String rutaImagen = prod.getImagen();
 
-        // Stock manejado con AtomicInteger para poder modificar dentro de listeners
-        AtomicInteger stockActual = new AtomicInteger(prod.getStock());
-
         JPanel panel = new JPanel(new BorderLayout(5,5));
         panel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
         panel.setPreferredSize(new Dimension(180, 300));
@@ -151,7 +148,6 @@ public class VentanaCatalogo extends JFrame {
         Image imgEscalada = icon.getImage().getScaledInstance(150, 150, Image.SCALE_SMOOTH);
         JLabel lblImagen = new JLabel(new ImageIcon(imgEscalada));
         lblImagen.setHorizontalAlignment(SwingConstants.CENTER);
-
         lblImagen.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         lblImagen.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -159,7 +155,6 @@ public class VentanaCatalogo extends JFrame {
                 abrirVentanaProducto(prod);
             }
         });
-
         pImagen.add(lblImagen);
         panel.add(pImagen, BorderLayout.NORTH);
 
@@ -167,12 +162,9 @@ public class VentanaCatalogo extends JFrame {
         lblNombre.setFont(new Font("Tahoma", Font.BOLD, 14));
         JLabel lblPrecio = new JLabel(precio + " €", SwingConstants.CENTER);
         lblPrecio.setFont(new Font("Tahoma", Font.PLAIN, 12));
-        JLabel lblStock = new JLabel("Stock: " + stockActual.get(), SwingConstants.CENTER);
-
-        JPanel pInfo = new JPanel(new GridLayout(3,1));
+        JPanel pInfo = new JPanel(new GridLayout(2,1));
         pInfo.add(lblNombre);
         pInfo.add(lblPrecio);
-        pInfo.add(lblStock);
         panel.add(pInfo, BorderLayout.CENTER);
 
         JPanel pCantidad = new JPanel(new FlowLayout(FlowLayout.CENTER,5,5));
@@ -183,13 +175,14 @@ public class VentanaCatalogo extends JFrame {
         JButton btnMenos = new JButton("-");
         btnMenos.addActionListener(e -> {
             int cant = Integer.parseInt(lblCantidad.getText());
-            if(cant > 0) lblCantidad.setText(String.valueOf(cant-1));
+            if(cant>0) lblCantidad.setText(String.valueOf(cant-1));
         });
 
         JButton btnMas = new JButton("+");
         btnMas.addActionListener(e -> {
+            int stockActual = stockProductos.get(nombre).get();
             int cant = Integer.parseInt(lblCantidad.getText());
-            if(cant < stockActual.get()) lblCantidad.setText(String.valueOf(cant+1));
+            if(cant < stockActual) lblCantidad.setText(String.valueOf(cant+1));
         });
 
         JButton btnAgregarCarrito = new JButton(new ImageIcon("resources/images/carrito.png"));
@@ -197,18 +190,19 @@ public class VentanaCatalogo extends JFrame {
         btnAgregarCarrito.setFocusPainted(false);
         btnAgregarCarrito.setContentAreaFilled(false);
         btnAgregarCarrito.setBorderPainted(false);
-
         btnAgregarCarrito.addActionListener(e -> {
             int cant = Integer.parseInt(lblCantidad.getText());
-            if(cant > 0 && cant <= stockActual.get()){
+            if(cant>0){
                 ProductoCarrito pc = carrito.get(nombre);
-                if(pc == null) carrito.put(nombre, new ProductoCarrito(nombre, precio, cant));
-                else pc.setCantidad(pc.getCantidad() + cant);
-
-                stockActual.addAndGet(-cant);
-                lblStock.setText("Stock: " + stockActual.get());
-
+                if(pc==null){
+                    carrito.put(nombre,new ProductoCarrito(nombre, precio, cant));
+                } else {
+                    pc.setCantidad(pc.getCantidad() + cant);
+                }
+                stockProductos.get(nombre).addAndGet(-cant); // descontar stock
                 lblCantidad.setText("0");
+                pCentral.revalidate();
+                pCentral.repaint();
             }
         });
 
@@ -233,13 +227,13 @@ public class VentanaCatalogo extends JFrame {
         JLabel lblImagen = new JLabel(new ImageIcon(imgEscalada));
         lblImagen.setHorizontalAlignment(SwingConstants.CENTER);
         dialog.add(lblImagen, BorderLayout.NORTH);
-        
+
         JPanel pInfo = new JPanel(new GridLayout(4,1,5,5));
         pInfo.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
         pInfo.add(new JLabel("Nombre: " + prod.getNombre()));
         pInfo.add(new JLabel("Descripción: " + prod.getDescripcion()));
         pInfo.add(new JLabel("Precio: " + prod.getPrecio() + " €"));
-        pInfo.add(new JLabel("Stock: " + prod.getStock()));
+        pInfo.add(new JLabel("Stock: " + stockProductos.get(prod.getNombre()).get()));
         dialog.add(pInfo, BorderLayout.CENTER);
 
         JButton btnCerrar = new JButton("Cerrar");
