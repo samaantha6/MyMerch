@@ -134,12 +134,18 @@ public class VentanaInicioSesion extends JFrame {
 
             Usuario usuario = validarUsuario(correo, contrasena);
             if (usuario != null) {
-                SwingUtilities.invokeLater(() -> new VentanaCatalogo(usuario));
+                // Comprobamos si es admin
+                if (correo.toLowerCase().endsWith("@merch.com")) {
+                    SwingUtilities.invokeLater(() -> new VentanaAdminProductos(usuario)); // Abrir ventana admin
+                } else {
+                    SwingUtilities.invokeLater(() -> new VentanaCatalogo(usuario)); // Abrir catálogo normal
+                }
                 dispose();
             } else {
                 JOptionPane.showMessageDialog(this, "Correo o contraseña incorrectos", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
+
 
         pInferior.add(btnRegistrarse);
         pInferior.add(btnIniciarSesion);
