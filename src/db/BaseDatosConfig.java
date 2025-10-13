@@ -10,8 +10,12 @@ import domain.*;
 public class BaseDatosConfig {
 
     private static final Logger logger = Logger.getLogger(BaseDatosConfig.class.getName());
+    private static boolean loggerConfigurado = false;
+    private static boolean conexionMostrada = false;
 
     public static Connection initBD(String nombreBD) {
+        configurarLogger();
+
         Connection con = null;
         try {
             File carpeta = new File("resources/db");
@@ -21,7 +25,12 @@ public class BaseDatosConfig {
 
             Class.forName("org.sqlite.JDBC");
             con = DriverManager.getConnection("jdbc:sqlite:" + nombreBD);
-            logger.info("Conexión con la base de datos establecida correctamente.");
+
+            if (!conexionMostrada) {
+                logger.info("Conexión con la base de datos establecida correctamente.");
+                conexionMostrada = true; 
+            }
+
         } catch (ClassNotFoundException e) {
             logger.severe("Driver SQLite no encontrado: " + e.getMessage());
             e.printStackTrace();
@@ -36,11 +45,22 @@ public class BaseDatosConfig {
         if (con != null) {
             try {
                 con.close();
-                logger.info("Conexión cerrada correctamente.");
             } catch (SQLException ex) {
                 logger.warning("Error cerrando conexión con la BBDD: " + ex.getMessage());
             }
         }
+    }
+
+    private static void configurarLogger() {
+        if (loggerConfigurado) return;
+
+        logger.setUseParentHandlers(false); 
+        ConsoleHandler handler = new ConsoleHandler();
+        handler.setLevel(Level.INFO);
+        logger.addHandler(handler);
+        logger.setLevel(Level.INFO);
+
+        loggerConfigurado = true;
     }
 
     public static void crearTablas(Connection con) throws SQLException {

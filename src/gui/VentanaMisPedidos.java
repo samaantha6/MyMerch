@@ -337,7 +337,7 @@ public class VentanaMisPedidos extends JFrame {
                         if (opcion == JOptionPane.YES_OPTION) {
                             int idPedido = (Integer) table.getValueAt(row, 0);
                             cancelarPedido(idPedido);
-                            table.setValueAt("Cancelado", row, 4); // actualizar tabla visual
+                            table.setValueAt("Cancelado", row, 4); 
                         }
                         fireEditingStopped();
                     }
@@ -380,16 +380,46 @@ public class VentanaMisPedidos extends JFrame {
 
         private void cancelarPedido(int idPedido) {
             try (Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db")) {
+                con.setAutoCommit(false);
+
+                String sqlDetalle = "SELECT id_producto, cantidad FROM DetallePedido WHERE id_pedido = ?";
+                PreparedStatement pstDet = con.prepareStatement(sqlDetalle);
+                pstDet.setInt(1, idPedido);
+                ResultSet rs = pstDet.executeQuery();
+
+                String sqlActualizarStock = "UPDATE Productos SET stock = stock + ? WHERE id = ?";
+                PreparedStatement pstStock = con.prepareStatement(sqlActualizarStock);
+
+                while (rs.next()) {
+                    int idProducto = rs.getInt("id_producto");
+                    int cantidad = rs.getInt("cantidad");
+
+                    pstStock.setInt(1, cantidad);
+                    pstStock.setInt(2, idProducto);
+                    pstStock.addBatch();
+                }
+
+                pstStock.executeBatch();
+                rs.close();
+                pstDet.close();
+                pstStock.close();
+
                 String sql = "UPDATE Pedidos SET estado = ? WHERE id = ?";
-                PreparedStatement pst = con.prepareStatement(sql);
-                pst.setString(1, "Cancelado");
-                pst.setInt(2, idPedido);
-                pst.executeUpdate();
-                pst.close();
+                PreparedStatement pstPedido = con.prepareStatement(sql);
+                pstPedido.setString(1, "Cancelado");
+                pstPedido.setInt(2, idPedido);
+                pstPedido.executeUpdate();
+                pstPedido.close();
+
+                con.commit();
+
                 JOptionPane.showMessageDialog(VentanaMisPedidos.this,
-                        "El pedido ha sido cancelado correctamente",
+                        "El pedido ha sido cancelado correctamente y el stock devuelto",
                         "Pedido Cancelado",
                         JOptionPane.INFORMATION_MESSAGE);
+
+                cargarPedidosDesdeBD();
+
             } catch (SQLException ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(VentanaMisPedidos.this,
@@ -398,6 +428,6 @@ public class VentanaMisPedidos extends JFrame {
                         JOptionPane.ERROR_MESSAGE);
             }
         }
-    }
 
+    }
 }
