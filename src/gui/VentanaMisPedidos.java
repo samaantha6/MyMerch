@@ -426,7 +426,7 @@ public class VentanaMisPedidos extends JFrame {
                         "Error al cancelar el pedido",
                         "Error",
                         JOptionPane.ERROR_MESSAGE);
-            }
+            } 
         }
 
     }
