@@ -227,6 +227,18 @@ public class VentanaCarrito extends JFrame {
         pProductos.revalidate();
         pProductos.repaint();
     }
+    
+    public void vaciarCarrito() {
+        for (ProductoCarrito pc : carrito.values()) {
+            AtomicInteger stock = stockProductos.get(pc.getNombre());
+            if (stock != null) {
+                stock.addAndGet(pc.getCantidad());
+            }
+        }
+        carrito.clear();
+        actualizarCarrito(); // refresca la interfaz
+    }
+
 
     private void calcularTotal() {
         double total = carrito.values().stream().mapToDouble(ProductoCarrito::getSubtotal).sum();

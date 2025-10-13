@@ -196,22 +196,47 @@ public class VentanaCrearPedido extends JFrame {
     }
 
     private void procesarPago() {
-        if (txtDireccion.getText().trim().isEmpty() || txtCP.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Debes rellenar la dirección y el código postal");
-            return;
-        }
-
-        if (rbTarjeta.isSelected() && !validarTarjeta()) return;
-
         double totalConEnvio = totalCarrito + envioExpress;
-
         guardarPedidoEnBD(totalConEnvio);
+
+        actualizarStockYVaciarCarrito();
 
         JOptionPane.showMessageDialog(this, "Pago correcto");
         dispose();
         if (ventanaAnterior != null) ventanaAnterior.setVisible(true);
     }
 
+    private void actualizarStockYVaciarCarrito() {
+        try (Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db")) {
+            String sqlActualizarStock = "UPDATE Productos SET stock = stock - ? WHERE id = ?";
+            PreparedStatement pst = con.prepareStatement(sqlActualizarStock);
+
+            for (ProductoCarrito pc : carrito.values()) {
+                pst.setInt(1, pc.getCantidad());
+                pst.setInt(2, pc.getId());
+
+                AtomicInteger stockActual = stockProductos.get(pc.getId());
+                if (stockActual != null) stockActual.addAndGet(-pc.getCantidad());
+
+                pst.addBatch();
+            }
+
+            pst.executeBatch();
+            pst.close();
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al actualizar stock.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+
+        carrito.clear();
+
+        if (ventanaAnterior instanceof VentanaCarrito) {
+            VentanaCarrito vc = (VentanaCarrito) ventanaAnterior;
+            vc.vaciarCarrito();
+        }
+
+    }
 
     private boolean validarTarjeta() {
         String num = txtNumTarjeta.getText().trim();
