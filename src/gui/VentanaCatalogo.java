@@ -192,10 +192,10 @@ public class VentanaCatalogo extends JFrame {
         btnAgregarCarrito.setBorderPainted(false);
         btnAgregarCarrito.addActionListener(e -> {
             int cant = Integer.parseInt(lblCantidad.getText());
-            if(cant>0){
+            if (cant > 0) {
                 ProductoCarrito pc = carrito.get(nombre);
-                if(pc==null){
-                    carrito.put(nombre,new ProductoCarrito(nombre, precio, cant));
+                if (pc == null) {
+                    carrito.put(nombre, new ProductoCarrito(prod.getId(), nombre, precio, cant));
                 } else {
                     pc.setCantidad(pc.getCantidad() + cant);
                 }
@@ -205,6 +205,7 @@ public class VentanaCatalogo extends JFrame {
                 pCentral.repaint();
             }
         });
+
 
         pCantidad.add(btnMenos);
         pCantidad.add(lblCantidad);

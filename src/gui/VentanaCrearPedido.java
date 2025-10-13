@@ -1,6 +1,12 @@
 package gui;
 
 import java.awt.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -8,31 +14,32 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import domain.ProductoCarrito;
 import domain.Usuario;
+import db.BaseDatosConfig;
 
 public class VentanaCrearPedido extends JFrame {
 
     private Usuario usuario;
-    private Map<String, ProductoCarrito> carrito;
-    private Map<String, AtomicInteger> stockProductos;
+    private Map<Integer, ProductoCarrito> carrito;
+    private Map<Integer, AtomicInteger> stockProductos;
+    private double totalCarrito;
 
     private JTextField txtDireccion, txtCP;
     private JComboBox<String> comboPais, comboProvincia;
-
     private JRadioButton rbContrareembolso, rbTarjeta;
     private JTextField txtNumTarjeta, txtFechaCad, txtCVV, txtTitular;
-
     private JLabel lblTotal;
     private double envioExpress = 7.0;
-    private double totalCarrito;
-
+    private JFrame ventanaAnterior;
     private Map<String, String[]> provinciasPorPais;
 
-    public VentanaCrearPedido(Usuario usuario, Map<String, ProductoCarrito> carrito,
-                              Map<String, AtomicInteger> stockProductos, double totalCarrito) {
+    public VentanaCrearPedido(Usuario usuario, Map<Integer, ProductoCarrito> carrito,
+                              Map<Integer, AtomicInteger> stockProductos,
+                              double totalCarrito, JFrame ventanaAnterior) {
         this.usuario = usuario;
         this.carrito = carrito;
         this.stockProductos = stockProductos;
         this.totalCarrito = totalCarrito;
+        this.ventanaAnterior = ventanaAnterior;
 
         inicializarProvincias();
 
@@ -43,6 +50,7 @@ public class VentanaCrearPedido extends JFrame {
 
         crearPanelSuperior();
         crearPanelCentral();
+
         setVisible(true);
         setResizable(false);
     }
@@ -73,7 +81,10 @@ public class VentanaCrearPedido extends JFrame {
         btnAtras.setFocusPainted(false);
         btnAtras.setContentAreaFilled(false);
         btnAtras.setBorderPainted(false);
-        btnAtras.addActionListener(e -> dispose());
+        btnAtras.addActionListener(e -> {
+            dispose();
+            if (ventanaAnterior != null) ventanaAnterior.setVisible(true);
+        });
 
         pSuperior.add(btnAtras, BorderLayout.WEST);
         pSuperior.add(lblTitulo, BorderLayout.CENTER);
@@ -192,9 +203,15 @@ public class VentanaCrearPedido extends JFrame {
 
         if (rbTarjeta.isSelected() && !validarTarjeta()) return;
 
+        double totalConEnvio = totalCarrito + envioExpress;
+
+        guardarPedidoEnBD(totalConEnvio);
+
         JOptionPane.showMessageDialog(this, "Pago correcto");
         dispose();
+        if (ventanaAnterior != null) ventanaAnterior.setVisible(true);
     }
+
 
     private boolean validarTarjeta() {
         String num = txtNumTarjeta.getText().trim();
@@ -219,5 +236,67 @@ public class VentanaCrearPedido extends JFrame {
             return false;
         }
         return true;
+    }
+
+    private void guardarPedidoEnBD(double totalConEnvio) {
+        Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db");
+        if (con != null) {
+            try {
+                String fecha = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+                double subtotalCarrito = carrito.values().stream()
+                        .mapToDouble(ProductoCarrito::getSubtotal)
+                        .sum();
+
+                double factorDescuento = 1.0;
+                if (totalCarrito < subtotalCarrito) {
+                    factorDescuento = totalCarrito / subtotalCarrito;
+                }
+
+                String sqlPedido = "INSERT INTO Pedidos(id_usuario, fecha, direccion, pais, cp, provincia, total) VALUES(?,?,?,?,?,?,?)";
+                PreparedStatement pstPedido = con.prepareStatement(sqlPedido, PreparedStatement.RETURN_GENERATED_KEYS);
+                pstPedido.setInt(1, usuario.getId());
+                pstPedido.setString(2, fecha);
+                pstPedido.setString(3, txtDireccion.getText().trim());
+                pstPedido.setString(4, (String) comboPais.getSelectedItem());
+                pstPedido.setString(5, txtCP.getText().trim());
+                pstPedido.setString(6, (String) comboProvincia.getSelectedItem());
+                pstPedido.setDouble(7, totalConEnvio);
+                pstPedido.executeUpdate();
+
+                ResultSet rs = pstPedido.getGeneratedKeys();
+                int idPedido = 0;
+                if (rs.next()) {
+                    idPedido = rs.getInt(1);
+                }
+                rs.close();
+
+                String sqlDetalle = "INSERT INTO DetallePedido(id_pedido, id_producto, cantidad, precio_unitario) VALUES(?,?,?,?)";
+                PreparedStatement pstDetalle = con.prepareStatement(sqlDetalle);
+
+                for (ProductoCarrito pc : carrito.values()) {
+                    double precioUnitarioConDescuento = pc.getPrecio() * factorDescuento;
+                    pstDetalle.setInt(1, idPedido);
+                    pstDetalle.setInt(2, pc.getId());
+                    pstDetalle.setInt(3, pc.getCantidad());
+                    pstDetalle.setDouble(4, precioUnitarioConDescuento);
+                    pstDetalle.addBatch();
+                }
+
+                pstDetalle.executeBatch();
+
+                pstDetalle.close();
+                pstPedido.close();
+
+                System.out.println("Pedido guardado correctamente con ID: " + idPedido);
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            } finally {
+                BaseDatosConfig.closeBD(con);
+            }
+        } else {
+            System.err.println("Error al abrir la base de datos.");
+        }
     }
 }

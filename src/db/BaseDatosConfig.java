@@ -13,7 +13,6 @@ public class BaseDatosConfig {
 
     public static Connection initBD(String nombreBD) {
         Connection con = null;
-
         try {
             File carpeta = new File("resources/db");
             if (!carpeta.exists()) {
@@ -23,7 +22,6 @@ public class BaseDatosConfig {
             Class.forName("org.sqlite.JDBC");
             con = DriverManager.getConnection("jdbc:sqlite:" + nombreBD);
             logger.info("Conexión con la base de datos establecida correctamente.");
-
         } catch (ClassNotFoundException e) {
             logger.severe("Driver SQLite no encontrado: " + e.getMessage());
             e.printStackTrace();
@@ -31,7 +29,6 @@ public class BaseDatosConfig {
             logger.warning("Error conectando con la base de datos: " + ex.getMessage());
             ex.printStackTrace();
         }
-
         return con;
     }
 
@@ -89,17 +86,19 @@ public class BaseDatosConfig {
             "pais TEXT DEFAULT '', " +
             "cp TEXT DEFAULT '', " +
             "provincia TEXT DEFAULT '', " +
+            "total REAL DEFAULT 0, " + 
             "FOREIGN KEY (id_usuario) REFERENCES Usuarios(id)" +
             ");"
         );
 
-        // Tabla DetallePedido
+        // Tabla DetallePedido 
         stmt.execute(
             "CREATE TABLE IF NOT EXISTS DetallePedido (" +
             "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
             "id_pedido INTEGER NOT NULL, " +
             "id_producto INTEGER NOT NULL, " +
             "cantidad INTEGER NOT NULL, " +
+            "precio_unitario REAL NOT NULL, " +
             "FOREIGN KEY (id_pedido) REFERENCES Pedidos(id), " +
             "FOREIGN KEY (id_producto) REFERENCES Productos(id)" +
             ");"

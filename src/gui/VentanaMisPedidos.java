@@ -134,11 +134,11 @@ public class VentanaMisPedidos extends JFrame {
                 String estado = rsPedidos.getString("estado");
                 String direccion = rsPedidos.getString("direccion");
 
-                // Detalles del pedido
                 String sqlDetalles = "SELECT dp.cantidad, prod.nombre, prod.descripcion, prod.precio " +
                                      "FROM DetallePedido dp " +
                                      "JOIN Productos prod ON dp.id_producto = prod.id " +
                                      "WHERE dp.id_pedido = ?";
+                
                 PreparedStatement pstDet = con.prepareStatement(sqlDetalles);
                 pstDet.setInt(1, idPedido);
                 ResultSet rsDet = pstDet.executeQuery();
@@ -193,54 +193,96 @@ public class VentanaMisPedidos extends JFrame {
             PDPage page = new PDPage();
             doc.addPage(page);
 
-            try (PDPageContentStream contentStream = new PDPageContentStream(doc, page)) {
-                PDFont fuenteTitulo = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-                PDFont fuenteNormal = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            PDPageContentStream content = new PDPageContentStream(doc, page);
+            PDFont fuenteTitulo = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+            PDFont fuenteNormal = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
 
-                contentStream.beginText();
-                contentStream.setFont(fuenteTitulo, 16);
-                contentStream.setLeading(20f);
-                contentStream.newLineAtOffset(50, 700);
+            float margin = 50;
+            float y = 750;
 
-                contentStream.showText("Factura de Pedido #" + idPedido);
-                contentStream.newLine();
-                contentStream.newLine();
-
-                // Mostrar detalles del pedido
-                for (int i = 0; i < modeloTabla.getRowCount(); i++) {
-                    if ((Integer) modeloTabla.getValueAt(i, 0) == idPedido) {
-                        contentStream.setFont(fuenteTitulo, 12);
-                        contentStream.showText("DETALLES DEL PEDIDO:");
-                        contentStream.newLine();
-
-                        contentStream.setFont(fuenteNormal, 12);
-                        String detalles = (String) modeloTabla.getValueAt(i, 1);
-                        for (String linea : detalles.split("\n")) {
-                            contentStream.showText(linea);
-                            contentStream.newLine();
-                        }
-
-                        contentStream.showText("Fecha: " + modeloTabla.getValueAt(i, 2));
-                        contentStream.newLine();
-                        contentStream.showText("Dirección: " + modeloTabla.getValueAt(i, 3));
-                        contentStream.newLine();
-                        contentStream.showText("Estado: " + modeloTabla.getValueAt(i, 4));
-                        contentStream.newLine();
-                        break;
-                    }
-                }
-
-                contentStream.endText();
-
-                InputStream imagen = getClass().getClassLoader().getResourceAsStream("resources/images/logo.png");
-                if (imagen != null) {
-                    PDImageXObject logo = PDImageXObject.createFromByteArray(doc, IOUtils.toByteArray(imagen), "logo");
-                    float escala = 0.3f;
-                    contentStream.drawImage(logo, 450, 700, logo.getWidth() * escala, logo.getHeight() * escala);
-                    imagen.close();
-                }
+            InputStream imagen = getClass().getClassLoader().getResourceAsStream("resources/images/logo.png");
+            if (imagen != null) {
+                PDImageXObject logo = PDImageXObject.createFromByteArray(doc, IOUtils.toByteArray(imagen), "logo");
+                float escala = 0.3f;
+                content.drawImage(logo, 450, y - 50, logo.getWidth() * escala, logo.getHeight() * escala);
+                imagen.close();
             }
 
+            content.beginText();
+            content.setFont(fuenteTitulo, 18);
+            content.newLineAtOffset(margin, y);
+            content.showText("Factura de Pedido #" + idPedido);
+            content.endText();
+            y -= 40;
+
+            content.beginText();
+            content.setFont(fuenteTitulo, 12);
+            content.newLineAtOffset(margin, y);
+            content.showText(String.format("%-30s %-10s %-10s %-10s", "Producto", "Cantidad", "Precio", "Subtotal"));
+            content.endText();
+            y -= 20;
+
+            double subtotalProductos = 0;
+
+            try (Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db")) {
+                String sql = "SELECT dp.cantidad, prod.nombre, prod.precio " +
+                             "FROM DetallePedido dp JOIN Productos prod ON dp.id_producto = prod.id " +
+                             "WHERE dp.id_pedido = ?";
+                PreparedStatement pst = con.prepareStatement(sql);
+                pst.setInt(1, idPedido);
+                ResultSet rs = pst.executeQuery();
+
+                content.setFont(fuenteNormal, 12);
+                while (rs.next()) {
+                    String nombre = rs.getString("nombre");
+                    int cantidad = rs.getInt("cantidad");
+                    double precioUnitario = rs.getDouble("precio");
+                    double subtotal = cantidad * precioUnitario;
+                    subtotalProductos += subtotal;
+
+                    content.beginText();
+                    content.newLineAtOffset(margin, y);
+                    content.showText(String.format("%-30s %-10d %-10.2f %-10.2f", nombre, cantidad, precioUnitario, subtotal));
+                    content.endText();
+                    y -= 20;
+                }
+                rs.close();
+                pst.close();
+
+                double envio = 7.0;
+                y -= 10;
+                content.beginText();
+                content.setFont(fuenteNormal, 12);
+                content.newLineAtOffset(margin, y);
+                content.showText(String.format("%-30s %-10s %-10s %-10.2f", "Envío express", "-", "-", envio));
+                content.endText();
+
+                double totalConEnvio = subtotalProductos + envio;
+
+                String sqlTotal = "SELECT total FROM Pedidos WHERE id = ?";
+                PreparedStatement pstTotal = con.prepareStatement(sqlTotal);
+                pstTotal.setInt(1, idPedido);
+                ResultSet rsTotal = pstTotal.executeQuery();
+                double totalReal = rsTotal.next() ? rsTotal.getDouble("total") : totalConEnvio;
+                rsTotal.close();
+                pstTotal.close();
+
+                y -= 30;
+                content.beginText();
+                content.setFont(fuenteTitulo, 14);
+                content.newLineAtOffset(margin, y);
+                if (totalReal < totalConEnvio) {
+                    content.showText(String.format("TOTAL: %.2f € (precio con descuento)", totalReal));
+                } else {
+                    content.showText(String.format("TOTAL: %.2f €", totalReal));
+                }
+                content.endText();
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+            content.close();
             doc.save(fpath);
             JOptionPane.showMessageDialog(this, "PDF generado correctamente: " + fpath, "Éxito", JOptionPane.INFORMATION_MESSAGE);
 
@@ -336,7 +378,6 @@ public class VentanaMisPedidos extends JFrame {
             return null;
         }
 
-        // Método para actualizar el estado del pedido en la BD
         private void cancelarPedido(int idPedido) {
             try (Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db")) {
                 String sql = "UPDATE Pedidos SET estado = ? WHERE id = ?";

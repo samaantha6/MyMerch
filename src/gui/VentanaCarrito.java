@@ -1,6 +1,7 @@
 package gui;
 
 import java.awt.*;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.*;
@@ -116,9 +117,27 @@ public class VentanaCarrito extends JFrame {
                 totalConCupon = carrito.values().stream().mapToDouble(ProductoCarrito::getSubtotal).sum();
             }
 
-            new VentanaCrearPedido(usuario, carrito, stockProductos, totalConCupon);
-            dispose();
+            Map<Integer, ProductoCarrito> carritoPorId = new HashMap<>();
+            for (ProductoCarrito pc : carrito.values()) {
+                if (pc.getId() > 0) {
+                    carritoPorId.put(pc.getId(), pc);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Error: algún producto no tiene id asignado.");
+                    return;
+                }
+            }
+
+            Map<Integer, AtomicInteger> stockPorId = new HashMap<>();
+            for (ProductoCarrito pc : carrito.values()) {
+                if (stockProductos.containsKey(pc.getNombre())) {
+                    stockPorId.put(pc.getId(), stockProductos.get(pc.getNombre()));
+                }
+            }
+
+            new VentanaCrearPedido(usuario, carritoPorId, stockPorId, totalConCupon, this);
+            setVisible(false);
         });
+
 
         pInferior.add(lblTotal);
         pInferior.add(Box.createRigidArea(new Dimension(0,10)));
