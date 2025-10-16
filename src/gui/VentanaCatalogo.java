@@ -22,9 +22,17 @@ public class VentanaCatalogo extends JFrame {
         this.usuario = usuario;
         setTitle("Catálogo");
         setSize(900, 700);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(10, 10));
+        
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                dispose();
+                new VentanaDespedida();
+            }
+        });
 
         crearPanelSuperior();
         crearPanelCentral();
@@ -244,5 +252,7 @@ public class VentanaCatalogo extends JFrame {
         dialog.add(pBoton, BorderLayout.SOUTH);
 
         dialog.setVisible(true);
+
     }
+    
 }

@@ -35,10 +35,18 @@ public class VentanaMisPedidos extends JFrame {
 
         setTitle("Mis Pedidos");
         setSize(900, 600);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(10, 10));
 
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                dispose();
+                new VentanaDespedida();
+            }
+        });
+        
         JPanel pSuperior = new JPanel(new BorderLayout());
         pSuperior.setBorder(new EmptyBorder(10, 10, 10, 10));
 
