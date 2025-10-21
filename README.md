@@ -13,12 +13,15 @@ El proyecto consta de varias ventanas por las que se puede navegar para ver el c
 - Consulta de catálogo y selección de productos.
 - Creación, modificación y eliminación de pedidos (con restricciones según estado del pedido).
 
+**Administradores**
+- Acceso para añadir productos nuevos con su respectivo stock.
+
 ## Guía de Uso
 
 - Registro:
 
         - La primera vez que se utilice será necesario que el usuario se registre, introduciendo: Nombre, Apellidos, Correo y Contraseña.
-        - Para proteger la cuenta, el usuario deberá aceptar los   Términos y Condiciones.
+        - Para proteger la cuenta, el usuario deberá aceptar los Términos y Condiciones.
   
 - Inicio de sesión:
 
@@ -35,6 +38,21 @@ El proyecto consta de varias ventanas por las que se puede navegar para ver el c
         - Muestra los productos seleccionados, con cantidad, precio y total acumulado.
         - Permite eliminar productos o modificar cantidades.
         - Posibilidad de introducir un código de descuento para actualizar el total. Botón “PAGAR” que redirige a la ventana de Crear Pedido.
+  
+- Crear Pedido:
+
+        - Muestra el precio total con el envío añadido.
+        - Solicita al usuario una Dirección, País, Provincia y CP.
+        - Selección del método de pago.
+
+- Mis Pedidos:
+
+        - Una vez el usuario haga un pedido aparecerá toda la informacón en la tabla de Pedidos con opción de modificaciones.
+        - Permite generar un factura en formato PDF a partir del ID de pedido.
+
+- Mi Cuenta:
+
+        - El usuario puede ver la información básica de su cuenta.
 
   
 ## Como instalar
