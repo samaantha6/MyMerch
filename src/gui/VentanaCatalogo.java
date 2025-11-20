@@ -17,6 +17,8 @@ public class VentanaCatalogo extends JFrame {
     private Map<String, AtomicInteger> stockProductos = new HashMap<>();
     private JPanel pCentral;
     private JLabel lblCargando;
+    private JTextField txtBusqueda;
+    private boolean busquedaActiva = false;
 
     public VentanaCatalogo(Usuario usuario) {
         this.usuario = usuario;
@@ -52,6 +54,7 @@ public class VentanaCatalogo extends JFrame {
         btnCarrito.setFocusPainted(false);
         pSuperior.add(btnCarrito, BorderLayout.WEST);
 
+        // Logo
         ImageIcon iconLogo = new ImageIcon("resources/images/logo.png");
         Image imgOriginal = iconLogo.getImage();
         int nuevaAltura = 80;
@@ -61,6 +64,7 @@ public class VentanaCatalogo extends JFrame {
         lblLogo.setHorizontalAlignment(SwingConstants.CENTER);
         pSuperior.add(lblLogo, BorderLayout.CENTER);
 
+        // Usuario
         ImageIcon iconUser = new ImageIcon("resources/images/user.png");
         Image imgUser = iconUser.getImage().getScaledInstance(48, 48, Image.SCALE_SMOOTH);
         JButton btnUser = new JButton(new ImageIcon(imgUser));
@@ -82,6 +86,31 @@ public class VentanaCatalogo extends JFrame {
         });
 
         btnUser.addActionListener(e -> menuUser.show(btnUser, 0, btnUser.getHeight()));
+
+        // Campo de búsqueda
+        JPanel pBusqueda = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        txtBusqueda = new JTextField(20);
+        JButton btnBuscar = new JButton("Buscar");
+        pBusqueda.add(txtBusqueda);
+        pBusqueda.add(btnBuscar);
+        pSuperior.add(pBusqueda, BorderLayout.SOUTH);
+
+        btnBuscar.addActionListener(e -> {
+            String nombreBuscado = txtBusqueda.getText().trim();
+            if (!nombreBuscado.isEmpty()) {
+                busquedaActiva = true; 
+                java.util.List<Producto> coincidencias = buscarProductosRecursivo(BaseDatosConfig.obtenerProductos(), nombreBuscado);
+                if (!coincidencias.isEmpty()) {
+                    mostrarProductosFiltrados(coincidencias);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Producto no encontrado");
+                }
+            } else {
+                busquedaActiva = false; 
+                pCentral.removeAll();
+                cargarProductos();
+            }
+        });
 
         add(pSuperior, BorderLayout.NORTH);
 
@@ -108,10 +137,10 @@ public class VentanaCatalogo extends JFrame {
 
         cargarProductos();
 
-        // Scroll infinito
+        // Scroll infinito solo si no hay búsqueda activa
         JScrollBar vertical = scroll.getVerticalScrollBar();
         vertical.addAdjustmentListener(e -> {
-            if (!e.getValueIsAdjusting()) {
+            if (!e.getValueIsAdjusting() && !busquedaActiva) {
                 int extent = vertical.getModel().getExtent();
                 int max = vertical.getMaximum();
                 int value = vertical.getValue();
@@ -207,13 +236,12 @@ public class VentanaCatalogo extends JFrame {
                 } else {
                     pc.setCantidad(pc.getCantidad() + cant);
                 }
-                stockProductos.get(nombre).addAndGet(-cant); // descontar stock
+                stockProductos.get(nombre).addAndGet(-cant); 
                 lblCantidad.setText("0");
                 pCentral.revalidate();
                 pCentral.repaint();
             }
         });
-
 
         pCantidad.add(btnMenos);
         pCantidad.add(lblCantidad);
@@ -252,7 +280,30 @@ public class VentanaCatalogo extends JFrame {
         dialog.add(pBoton, BorderLayout.SOUTH);
 
         dialog.setVisible(true);
-
     }
-    
+
+    // ---------------- Recursividad ----------------
+    private java.util.List<Producto> buscarProductosRecursivo(java.util.List<Producto> lista, String texto) {
+        java.util.List<Producto> encontrados = new ArrayList<>();
+        buscarProductosRecursivo(lista, texto.toLowerCase(), 0, encontrados);
+        return encontrados;
+    }
+
+    private void buscarProductosRecursivo(java.util.List<Producto> lista, String texto, int indice, java.util.List<Producto> encontrados) {
+        if (indice >= lista.size()) return;
+        Producto prod = lista.get(indice);
+        if (prod.getNombre().toLowerCase().contains(texto)) {
+            encontrados.add(prod);
+        }
+        buscarProductosRecursivo(lista, texto, indice + 1, encontrados);
+    }
+
+    private void mostrarProductosFiltrados(java.util.List<Producto> listaFiltrada) {
+        pCentral.removeAll();
+        for (Producto prod : listaFiltrada) {
+            pCentral.add(crearPanelProducto(prod));
+        }
+        pCentral.revalidate();
+        pCentral.repaint();
+    }
 }
