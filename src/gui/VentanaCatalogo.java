@@ -282,7 +282,7 @@ public class VentanaCatalogo extends JFrame {
         dialog.setVisible(true);
     }
 
-    // ---------------- Recursividad ----------------
+    //Recursividad
     private java.util.List<Producto> buscarProductosRecursivo(java.util.List<Producto> lista, String texto) {
         java.util.List<Producto> encontrados = new ArrayList<>();
         buscarProductosRecursivo(lista, texto.toLowerCase(), 0, encontrados);
