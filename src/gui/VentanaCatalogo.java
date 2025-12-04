@@ -95,6 +95,17 @@ public class VentanaCatalogo extends JFrame {
         pBusqueda.add(btnBuscar);
         pSuperior.add(pBusqueda, BorderLayout.SOUTH);
 
+        // Evento Teclado
+        txtBusqueda.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    btnBuscar.doClick();
+                }
+            }
+        });
+
+
         btnBuscar.addActionListener(e -> {
             String nombreBuscado = txtBusqueda.getText().trim();
             if (!nombreBuscado.isEmpty()) {

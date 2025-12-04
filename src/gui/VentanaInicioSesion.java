@@ -36,7 +36,6 @@ public class VentanaInicioSesion extends JFrame {
 
         pSuperior.add(Box.createHorizontalGlue());
 
-        // Logo a la derecha
         ImageIcon iconLogo = new ImageIcon("resources/images/logo.png"); 
         Image imgOriginal = iconLogo.getImage();
         int nuevaAltura = 60;
@@ -78,12 +77,10 @@ public class VentanaInicioSesion extends JFrame {
         gbc.gridy = 1;
         pCentral.add(lblContrasena, gbc);
 
-        // Panel para la contraseña + botón
         JPanel pContrasena = new JPanel(new BorderLayout());
         JPasswordField txtContrasena = new JPasswordField();
         txtContrasena.setPreferredSize(new Dimension(260, 30));
 
-        // Botón ojo con icono
         ImageIcon iconOjo = new ImageIcon("resources/images/ojo.png");
         Image imgOjo = iconOjo.getImage().getScaledInstance(35, 35, Image.SCALE_SMOOTH);
         JButton btnOjo = new JButton(new ImageIcon(imgOjo));
@@ -93,7 +90,6 @@ public class VentanaInicioSesion extends JFrame {
         btnOjo.setContentAreaFilled(false);
         btnOjo.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        // Mostrar/ocultar contraseña
         btnOjo.addActionListener(e -> {
             if (txtContrasena.getEchoChar() != '\u0000') { // mostrar
                 txtContrasena.setEchoChar((char)0);
@@ -122,7 +118,6 @@ public class VentanaInicioSesion extends JFrame {
             dispose();
         });
 
-        // Botón Iniciar Sesión valida usuario en la BD
         btnIniciarSesion.addActionListener(e -> {
             String correo = txtUsuario.getText().trim() + comboDominio.getSelectedItem().toString();
             String contrasena = new String(txtContrasena.getPassword());
@@ -134,7 +129,6 @@ public class VentanaInicioSesion extends JFrame {
 
             Usuario usuario = validarUsuario(correo, contrasena);
             if (usuario != null) {
-                // Comprobamos si es admin
                 if (correo.toLowerCase().endsWith("@merch.com")) {
                     SwingUtilities.invokeLater(() -> new VentanaAdminProductos(usuario)); // Abrir ventana admin
                 } else {
@@ -146,6 +140,15 @@ public class VentanaInicioSesion extends JFrame {
             }
         });
 
+        //Evento Teclado
+        txtContrasena.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    btnIniciarSesion.doClick();
+                }
+            }
+        });
 
         pInferior.add(btnRegistrarse);
         pInferior.add(btnIniciarSesion);
@@ -185,7 +188,6 @@ public class VentanaInicioSesion extends JFrame {
         return boton;
     }
 
-    // Validar usuario en la base de datos
     private Usuario validarUsuario(String correo, String contrasena) {
         Usuario u = null;
         Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db");
@@ -205,8 +207,6 @@ public class VentanaInicioSesion extends JFrame {
                         rs.getString("contrasena")
                     );
                     u.setId(rs.getInt("id"));  
-                
-
                 }
                 rs.close();
                 pst.close();
