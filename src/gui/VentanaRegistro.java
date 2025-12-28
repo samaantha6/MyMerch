@@ -3,6 +3,8 @@ package gui;
 import java.awt.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
@@ -318,7 +320,13 @@ public class VentanaRegistro extends JFrame {
                     existe = true;
                 }
                 pst.close();
-            } catch (Exception ex) {
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(
+                    null,
+                    "Error al comprobar usuario en la base de datos.",
+                    "Error de Base de Datos",
+                    JOptionPane.ERROR_MESSAGE
+                );
                 ex.printStackTrace();
             } finally {
                 BaseDatosConfig.closeBD(con);

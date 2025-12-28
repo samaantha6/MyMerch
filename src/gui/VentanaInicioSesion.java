@@ -198,6 +198,7 @@ public class VentanaInicioSesion extends JFrame {
                 pst.setString(1, correo);
                 pst.setString(2, contrasena);
                 ResultSet rs = pst.executeQuery();
+
                 if (rs.next()) {
                     u = new Usuario(
                         rs.getString("nombre"),
@@ -208,15 +209,30 @@ public class VentanaInicioSesion extends JFrame {
                     );
                     u.setId(rs.getInt("id"));  
                 }
+
                 rs.close();
                 pst.close();
             } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(
+                    this,
+                    "Error al conectar con la base de datos. Intenta más tarde.",
+                    "Error de Base de Datos",
+                    JOptionPane.ERROR_MESSAGE
+                );
                 ex.printStackTrace();
             } finally {
                 BaseDatosConfig.closeBD(con);
             }
+        } else {
+            JOptionPane.showMessageDialog(
+                this,
+                "No se pudo establecer conexión con la base de datos.",
+                "Error de Conexión",
+                JOptionPane.ERROR_MESSAGE
+            );
         }
         return u;
     }
+
 
 }

@@ -127,7 +127,13 @@ public class VentanaMiCuenta extends JFrame {
                 }
                 pst.close();
             } catch (Exception ex) {
-                ex.printStackTrace();
+            	JOptionPane.showMessageDialog(
+                        this,
+                        "Ocurrió un error al cambiar la contraseña. Intenta más tarde.",
+                        "Error de Base de Datos",
+                        JOptionPane.ERROR_MESSAGE
+                    );
+                    ex.printStackTrace(); 
             } finally {
                 BaseDatosConfig.closeBD(con);
             }

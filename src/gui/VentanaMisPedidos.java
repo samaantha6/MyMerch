@@ -30,8 +30,8 @@ public class VentanaMisPedidos extends JFrame {
     private JComboBox<Integer> comboPedidos;
 
     public VentanaMisPedidos(Usuario usuario) {
-        System.out.println("ID de usuario: " + usuario.getId());
         this.usuario = usuario;
+        System.out.println("ID de usuario: " + usuario.getId());
 
         setTitle("Mis Pedidos");
         setSize(900, 600);
@@ -46,7 +46,7 @@ public class VentanaMisPedidos extends JFrame {
                 new VentanaDespedida();
             }
         });
-        
+
         JPanel pSuperior = new JPanel(new BorderLayout());
         pSuperior.setBorder(new EmptyBorder(10, 10, 10, 10));
 
@@ -78,12 +78,10 @@ public class VentanaMisPedidos extends JFrame {
         pSuperior.add(btnHome, BorderLayout.EAST);
         add(pSuperior, BorderLayout.NORTH);
 
-        // Tabla
         String[] columnas = {"ID Pedido", "Detalles", "Fecha", "Dirección", "Estado", "Acciones"};
         modeloTabla = new DefaultTableModel(columnas, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                // Solo editable la columna "Acciones"
                 return getColumnName(column).equals("Acciones");
             }
         };
@@ -143,10 +141,10 @@ public class VentanaMisPedidos extends JFrame {
                 String direccion = rsPedidos.getString("direccion");
 
                 String sqlDetalles = "SELECT dp.cantidad, prod.nombre, prod.descripcion, prod.precio " +
-                                     "FROM DetallePedido dp " +
-                                     "JOIN Productos prod ON dp.id_producto = prod.id " +
-                                     "WHERE dp.id_pedido = ?";
-                
+                        "FROM DetallePedido dp " +
+                        "JOIN Productos prod ON dp.id_producto = prod.id " +
+                        "WHERE dp.id_pedido = ?";
+
                 PreparedStatement pstDet = con.prepareStatement(sqlDetalles);
                 pstDet.setInt(1, idPedido);
                 ResultSet rsDet = pstDet.executeQuery();
@@ -234,8 +232,8 @@ public class VentanaMisPedidos extends JFrame {
 
             try (Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db")) {
                 String sql = "SELECT dp.cantidad, prod.nombre, prod.precio " +
-                             "FROM DetallePedido dp JOIN Productos prod ON dp.id_producto = prod.id " +
-                             "WHERE dp.id_pedido = ?";
+                        "FROM DetallePedido dp JOIN Productos prod ON dp.id_producto = prod.id " +
+                        "WHERE dp.id_pedido = ?";
                 PreparedStatement pst = con.prepareStatement(sql);
                 pst.setInt(1, idPedido);
                 ResultSet rs = pst.executeQuery();
@@ -304,16 +302,13 @@ public class VentanaMisPedidos extends JFrame {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
                                                        boolean isSelected, boolean hasFocus, int row, int column) {
-
             JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
             String estado = (String) table.getValueAt(row, 4);
             if ("pendiente".equalsIgnoreCase(estado)) {
                 JButton btnCancelar = new JButton(new ImageIcon("resources/images/x.png"));
                 btnCancelar.setPreferredSize(new Dimension(25, 25));
-
                 JButton btnEditar = new JButton(new ImageIcon("resources/images/lapiz.png"));
                 btnEditar.setPreferredSize(new Dimension(25, 25));
-
                 panel.add(btnCancelar);
                 panel.add(btnEditar);
             }
@@ -345,9 +340,12 @@ public class VentanaMisPedidos extends JFrame {
                         if (opcion == JOptionPane.YES_OPTION) {
                             int idPedido = (Integer) table.getValueAt(row, 0);
                             cancelarPedido(idPedido);
-                            table.setValueAt("Cancelado", row, 4); 
+
+                            fireEditingStopped(); 
+                            SwingUtilities.invokeLater(() -> cargarPedidosDesdeBD());
+                        } else {
+                            fireEditingStopped();
                         }
-                        fireEditingStopped();
                     }
                 }
             });
@@ -372,12 +370,10 @@ public class VentanaMisPedidos extends JFrame {
                                                      boolean isSelected, int row, int column) {
             panel.removeAll();
             String estado = (String) table.getValueAt(row, 4);
-
-            if ("Pendiente".equalsIgnoreCase(estado)) {
+            if ("pendiente".equalsIgnoreCase(estado)) {
                 panel.add(btnCancelar);
                 panel.add(btnEditar);
             }
-
             return panel;
         }
 
@@ -388,54 +384,56 @@ public class VentanaMisPedidos extends JFrame {
 
         private void cancelarPedido(int idPedido) {
             try (Connection con = BaseDatosConfig.initBD("resources/db/MyMerch.db")) {
+                if (con == null) {
+                    JOptionPane.showMessageDialog(VentanaMisPedidos.this,
+                            "No se pudo conectar con la base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
                 con.setAutoCommit(false);
 
                 String sqlDetalle = "SELECT id_producto, cantidad FROM DetallePedido WHERE id_pedido = ?";
-                PreparedStatement pstDet = con.prepareStatement(sqlDetalle);
-                pstDet.setInt(1, idPedido);
-                ResultSet rs = pstDet.executeQuery();
-
-                String sqlActualizarStock = "UPDATE Productos SET stock = stock + ? WHERE id = ?";
-                PreparedStatement pstStock = con.prepareStatement(sqlActualizarStock);
-
-                while (rs.next()) {
-                    int idProducto = rs.getInt("id_producto");
-                    int cantidad = rs.getInt("cantidad");
-
-                    pstStock.setInt(1, cantidad);
-                    pstStock.setInt(2, idProducto);
-                    pstStock.addBatch();
+                try (PreparedStatement pstDet = con.prepareStatement(sqlDetalle);
+                     PreparedStatement pstStock = con.prepareStatement(
+                             "UPDATE Productos SET stock = stock + ? WHERE id = ?")) {
+                    pstDet.setInt(1, idPedido);
+                    try (ResultSet rs = pstDet.executeQuery()) {
+                        while (rs.next()) {
+                            pstStock.setInt(1, rs.getInt("cantidad"));
+                            pstStock.setInt(2, rs.getInt("id_producto"));
+                            pstStock.addBatch();
+                        }
+                    }
+                    pstStock.executeBatch();
                 }
 
-                pstStock.executeBatch();
-                rs.close();
-                pstDet.close();
-                pstStock.close();
+                try (PreparedStatement pstPedido = con.prepareStatement(
+                        "UPDATE Pedidos SET estado = ? WHERE id = ?")) {
+                    pstPedido.setString(1, "Cancelado");
+                    pstPedido.setInt(2, idPedido);
+                    pstPedido.executeUpdate();
+                }
 
-                String sql = "UPDATE Pedidos SET estado = ? WHERE id = ?";
-                PreparedStatement pstPedido = con.prepareStatement(sql);
-                pstPedido.setString(1, "Cancelado");
-                pstPedido.setInt(2, idPedido);
-                pstPedido.executeUpdate();
-                pstPedido.close();
+                try (PreparedStatement pstDetalle = con.prepareStatement(
+                        "DELETE FROM DetallePedido WHERE id_pedido = ?")) {
+                    pstDetalle.setInt(1, idPedido);
+                    pstDetalle.executeUpdate();
+                }
+                try (PreparedStatement pstPedido = con.prepareStatement(
+                        "DELETE FROM Pedidos WHERE id = ?")) {
+                    pstPedido.setInt(1, idPedido);
+                    pstPedido.executeUpdate();
+                }
 
                 con.commit();
 
                 JOptionPane.showMessageDialog(VentanaMisPedidos.this,
-                        "El pedido ha sido cancelado correctamente y el stock devuelto",
-                        "Pedido Cancelado",
-                        JOptionPane.INFORMATION_MESSAGE);
-
-                cargarPedidosDesdeBD();
+                        "Pedido cancelado y eliminado correctamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
 
             } catch (SQLException ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(VentanaMisPedidos.this,
-                        "Error al cancelar el pedido",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
-            } 
+                        "Error al cancelar y borrar el pedido", "Error", JOptionPane.ERROR_MESSAGE);
+            }
         }
-
     }
 }

@@ -221,4 +221,135 @@ public class BaseDatosConfig {
         }
         return lista;
     }
+    
+    //Delete 
+    
+    public static boolean borrarProducto(int idProducto) {
+        Connection con = initBD("resources/db/MyMerch.db");
+        if (con != null) {
+            try {
+                String sql = "DELETE FROM Productos WHERE id = ?";
+                PreparedStatement pst = con.prepareStatement(sql);
+                pst.setInt(1, idProducto);
+
+                int rows = pst.executeUpdate();
+                pst.close();
+
+                return rows > 0; 
+            } catch (SQLException e) {
+                e.printStackTrace();
+            } finally {
+                closeBD(con);
+            }
+        }
+        return false;
+    }
+    
+    public static boolean borrarPedido(int idPedido) {
+        Connection con = initBD("resources/db/MyMerch.db");
+        if (con != null) {
+            try {
+                con.setAutoCommit(false);
+
+                PreparedStatement pstDetalle =
+                    con.prepareStatement("DELETE FROM DetallePedido WHERE id_pedido = ?");
+                pstDetalle.setInt(1, idPedido);
+                pstDetalle.executeUpdate();
+                pstDetalle.close();
+
+                PreparedStatement pstPedido =
+                    con.prepareStatement("DELETE FROM Pedidos WHERE id = ?");
+                pstPedido.setInt(1, idPedido);
+
+                int rows = pstPedido.executeUpdate();
+                pstPedido.close();
+
+                con.commit();
+                return rows > 0;
+            } catch (SQLException e) {
+                try { con.rollback(); } catch (SQLException ex) {}
+                e.printStackTrace();
+            } finally {
+                closeBD(con);
+            }
+        }
+        return false;
+    }
+
+    public static boolean borrarPedidoDefinitivo(int idPedido) {
+        Connection con = initBD("resources/db/MyMerch.db");
+        if (con != null) {
+            try {
+                con.setAutoCommit(false);
+
+                // Comprobar que el pedido está cancelado
+                String checkSql = "SELECT estado FROM Pedidos WHERE id = ?";
+                PreparedStatement check = con.prepareStatement(checkSql);
+                check.setInt(1, idPedido);
+                ResultSet rs = check.executeQuery();
+
+                if (!rs.next() || !"Cancelado".equalsIgnoreCase(rs.getString("estado"))) {
+                    rs.close();
+                    check.close();
+                    con.rollback();
+                    return false;
+                }
+
+                rs.close();
+                check.close();
+
+                // Borrar detalles del pedido
+                String sqlDetalle = "DELETE FROM DetallePedido WHERE id_pedido = ?";
+                PreparedStatement pstDet = con.prepareStatement(sqlDetalle);
+                pstDet.setInt(1, idPedido);
+                pstDet.executeUpdate();
+                pstDet.close();
+
+                // Borrar pedido
+                String sqlPedido = "DELETE FROM Pedidos WHERE id = ?";
+                PreparedStatement pstPedido = con.prepareStatement(sqlPedido);
+                pstPedido.setInt(1, idPedido);
+                int rows = pstPedido.executeUpdate();
+                pstPedido.close();
+
+                con.commit();
+                return rows > 0;
+
+            } catch (SQLException e) {
+                try { con.rollback(); } catch (SQLException ex) {}
+                e.printStackTrace();
+            } finally {
+                closeBD(con);
+            }
+        }
+        return false;
+    }
+
+    public static boolean actualizarProducto(Producto p) {
+        Connection con = initBD("resources/db/MyMerch.db");
+        if (con != null) {
+            try {
+                String sql = "UPDATE Productos SET nombre=?, descripcion=?, precio=?, imagen=?, stock=? WHERE id=?";
+                PreparedStatement pst = con.prepareStatement(sql);
+                pst.setString(1, p.getNombre());
+                pst.setString(2, p.getDescripcion());
+                pst.setDouble(3, p.getPrecio());
+                pst.setString(4, p.getImagen());
+                pst.setInt(5, p.getStock());
+                pst.setInt(6, p.getId());
+
+                int rows = pst.executeUpdate();
+                pst.close();
+
+                return rows > 0;
+            } catch (SQLException e) {
+                e.printStackTrace();
+            } finally {
+                closeBD(con);
+            }
+        }
+        return false;
+    }
+
+
 }

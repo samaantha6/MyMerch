@@ -264,9 +264,14 @@ public class VentanaModificarPedido extends JFrame {
             JOptionPane.showMessageDialog(this, "Dirección actualizada correctamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
             ventanaAnterior.cargarPedidosDesdeBD();
             this.dispose();
-        } catch (SQLException ex) {
+        }  catch (SQLException ex) {
+            JOptionPane.showMessageDialog(
+                this,
+                "Ocurrió un error al actualizar la dirección. Intenta más tarde.",
+                "Error de Base de Datos",
+                JOptionPane.ERROR_MESSAGE
+            );
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error al actualizar dirección", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 }
