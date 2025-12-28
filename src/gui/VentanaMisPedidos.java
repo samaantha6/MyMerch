@@ -31,7 +31,7 @@ public class VentanaMisPedidos extends JFrame {
 
     public VentanaMisPedidos(Usuario usuario) {
         this.usuario = usuario;
-        System.out.println("ID de usuario: " + usuario.getId());
+        //System.out.println("ID de usuario: " + usuario.getId());
 
         setTitle("Mis Pedidos");
         setSize(900, 600);
@@ -413,19 +413,14 @@ public class VentanaMisPedidos extends JFrame {
                     pstPedido.executeUpdate();
                 }
 
-                try (PreparedStatement pstDetalle = con.prepareStatement(
-                        "DELETE FROM DetallePedido WHERE id_pedido = ?")) {
-                    pstDetalle.setInt(1, idPedido);
-                    pstDetalle.executeUpdate();
-                }
-                try (PreparedStatement pstPedido = con.prepareStatement(
-                        "DELETE FROM Pedidos WHERE id = ?")) {
-                    pstPedido.setInt(1, idPedido);
-                    pstPedido.executeUpdate();
+                if (!BaseDatosConfig.borrarPedido(con, idPedido)) {
+                    JOptionPane.showMessageDialog(VentanaMisPedidos.this,
+                            "Error al borrar pedido desde BaseDatosConfig", "Error", JOptionPane.ERROR_MESSAGE);
+                    con.rollback();
+                    return;
                 }
 
                 con.commit();
-
                 JOptionPane.showMessageDialog(VentanaMisPedidos.this,
                         "Pedido cancelado y eliminado correctamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
 
@@ -435,5 +430,5 @@ public class VentanaMisPedidos extends JFrame {
                         "Error al cancelar y borrar el pedido", "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
-    }
-}
+
+}}

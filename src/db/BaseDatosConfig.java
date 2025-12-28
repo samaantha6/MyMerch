@@ -222,7 +222,6 @@ public class BaseDatosConfig {
         return lista;
     }
     
-    //Delete 
     
     public static boolean borrarProducto(int idProducto) {
         Connection con = initBD("resources/db/MyMerch.db");
@@ -245,85 +244,25 @@ public class BaseDatosConfig {
         return false;
     }
     
-    public static boolean borrarPedido(int idPedido) {
-        Connection con = initBD("resources/db/MyMerch.db");
-        if (con != null) {
-            try {
-                con.setAutoCommit(false);
+    public static boolean borrarPedido(Connection con, int idPedido) throws SQLException {
+        con.setAutoCommit(false);
 
-                PreparedStatement pstDetalle =
-                    con.prepareStatement("DELETE FROM DetallePedido WHERE id_pedido = ?");
-                pstDetalle.setInt(1, idPedido);
-                pstDetalle.executeUpdate();
-                pstDetalle.close();
-
-                PreparedStatement pstPedido =
-                    con.prepareStatement("DELETE FROM Pedidos WHERE id = ?");
-                pstPedido.setInt(1, idPedido);
-
-                int rows = pstPedido.executeUpdate();
-                pstPedido.close();
-
-                con.commit();
-                return rows > 0;
-            } catch (SQLException e) {
-                try { con.rollback(); } catch (SQLException ex) {}
-                e.printStackTrace();
-            } finally {
-                closeBD(con);
-            }
+        try (PreparedStatement pstDetalle =
+                     con.prepareStatement("DELETE FROM DetallePedido WHERE id_pedido = ?")) {
+            pstDetalle.setInt(1, idPedido);
+            pstDetalle.executeUpdate();
         }
-        return false;
+
+        int rows;
+        try (PreparedStatement pstPedido =
+                     con.prepareStatement("DELETE FROM Pedidos WHERE id = ?")) {
+            pstPedido.setInt(1, idPedido);
+            rows = pstPedido.executeUpdate();
+        }
+
+        return rows > 0;
     }
 
-    public static boolean borrarPedidoDefinitivo(int idPedido) {
-        Connection con = initBD("resources/db/MyMerch.db");
-        if (con != null) {
-            try {
-                con.setAutoCommit(false);
-
-                // Comprobar que el pedido está cancelado
-                String checkSql = "SELECT estado FROM Pedidos WHERE id = ?";
-                PreparedStatement check = con.prepareStatement(checkSql);
-                check.setInt(1, idPedido);
-                ResultSet rs = check.executeQuery();
-
-                if (!rs.next() || !"Cancelado".equalsIgnoreCase(rs.getString("estado"))) {
-                    rs.close();
-                    check.close();
-                    con.rollback();
-                    return false;
-                }
-
-                rs.close();
-                check.close();
-
-                // Borrar detalles del pedido
-                String sqlDetalle = "DELETE FROM DetallePedido WHERE id_pedido = ?";
-                PreparedStatement pstDet = con.prepareStatement(sqlDetalle);
-                pstDet.setInt(1, idPedido);
-                pstDet.executeUpdate();
-                pstDet.close();
-
-                // Borrar pedido
-                String sqlPedido = "DELETE FROM Pedidos WHERE id = ?";
-                PreparedStatement pstPedido = con.prepareStatement(sqlPedido);
-                pstPedido.setInt(1, idPedido);
-                int rows = pstPedido.executeUpdate();
-                pstPedido.close();
-
-                con.commit();
-                return rows > 0;
-
-            } catch (SQLException e) {
-                try { con.rollback(); } catch (SQLException ex) {}
-                e.printStackTrace();
-            } finally {
-                closeBD(con);
-            }
-        }
-        return false;
-    }
 
     public static boolean actualizarProducto(Producto p) {
         Connection con = initBD("resources/db/MyMerch.db");
