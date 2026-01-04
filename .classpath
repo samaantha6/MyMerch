@@ -6,7 +6,7 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="C:/Users/saman/git/MyMerch/lib/pdfbox-app-3.0.5.jar"/>
-	<classpathentry kind="lib" path="C:/Users/saman/git/MyMerch/lib/sqlite-jdbc-3.50.3.0.jar"/>
+	<classpathentry kind="lib" path="lib/pdfbox-app-3.0.5.jar"/>
+	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.50.3.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
