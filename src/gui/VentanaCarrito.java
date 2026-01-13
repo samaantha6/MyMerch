@@ -228,6 +228,8 @@ public class VentanaCarrito extends JFrame {
         pProductos.repaint();
     }
     
+	//IAG ChatGPT
+
     public void vaciarCarrito() {
         for (ProductoCarrito pc : carrito.values()) {
             AtomicInteger stock = stockProductos.get(pc.getNombre());

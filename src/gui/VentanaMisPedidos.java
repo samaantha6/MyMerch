@@ -178,6 +178,8 @@ public class VentanaMisPedidos extends JFrame {
         }
     }
 
+	//IAG ChatGPT - Aportaciones para solucionar errores
+
     private void exportarPDF() {
         Integer idPedido = (Integer) comboPedidos.getSelectedItem();
         if (idPedido == null) {

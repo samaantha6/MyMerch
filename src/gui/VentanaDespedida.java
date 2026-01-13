@@ -48,6 +48,8 @@ public class VentanaDespedida extends JFrame {
         mostrarLetraRecursivo(0);
     }
 
+	//IAG ChatGPT
+
     private void mostrarLetraRecursivo(int index) {
         if (index < texto.length()) {
             textoActual.append(texto.charAt(index));
